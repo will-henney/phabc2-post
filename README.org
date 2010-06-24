@@ -1,0 +1,23 @@
+
+* Description
+
+Suite of programs for analysis of datacubes from the Phab-C² radiation-MHD code. Currently focused on magnetized HII regions. 
+
+These would also work on FITS files of the same variables from ohter sources.
+
+* Base variables
++ dd :: gas density
++ pp :: gas thermal pressure
++ b[xyz] :: B-field (units with μ₀ = 1)
++ v[xyz] :: velocity
++ x[ni] :: ionized and neutral hydrogen fractions
+
+* Some hilights
+** Calculating auxiliary variables
+
+*** cubet.f90
+Calculates the gas temperature
+*** cubextras.f90
+** Movies
+
+** Statistics
