@@ -10,14 +10,14 @@ margin = 0.5
 
 runtab = [
     # ['Ostar', 1, 92 ],
-    ['Bstar-ep', 10, 1020 ],
-    ['Bstar-HDep', 10, 1000 ],
+    ['Bstar-ep', 10, 1370 ],
+    ['Bstar-HDep', 10, 1450 ],
     ]
 
 
 datadir = '.'
 istep = 10
-tmax = 1200
+tmax = 1500
 
 for runid, i1, i2 in runtab:
     print "Creating stats graph for ", runid
@@ -36,6 +36,8 @@ for runid, i1, i2 in runtab:
     ## Mean density
     ##
     d = []
+
+    print dstatsfile
 
     for Dmean, title in [ 
 	('Dmean_i', r'$\langle n\rangle_\mathrm{ion}$'),
