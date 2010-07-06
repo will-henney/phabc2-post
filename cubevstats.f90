@@ -8,14 +8,19 @@ program cubevstats
   character(len=128) :: prefix, fitsfilename
   integer :: it1, it2, it, itstep
   integer :: nx, ny, nz, i, j, k
-  real :: vr_vol_tot, vr_vol_n, vr_vol_i
-  real :: vr_mass_tot, vr_mass_n, vr_mass_i
-  real :: vr_em_tot, vr_em_n, vr_em_i, vr_em_if
+  real :: vr_vol_tot, vr_vol_n, vr_vol_i, vr_vol_m
+  real :: vr_mass_tot, vr_mass_n, vr_mass_i, vr_mass_m
+  real :: vr_em_i, vr_em_if
   character(len=1), parameter :: TAB = achar(9)
   character(len=15) :: itstring
   real, parameter :: pi = 3.14159265358979, cubesize = 4.0*3.086e18
 !   integer, parameter :: itsmall = 70
   real :: rmax
+  ! WJH 05 Jul 2010 - New distinction between neutral/molecular gas
+  ! this is copied from the python code in mhd-pressures.py
+  real, parameter :: mol_AV0 = 3.0                           ! position of molecular transition 
+  real, parameter :: mol_sharpness = 4.0                     ! sharpness of molecular transition
+  real, allocatable, dimension(:,:,:) :: AV, xmol, wi, wn, wm
 
   print *, 'Run prefix (e.g., 30112005_c)?'
   read '(a)', prefix
@@ -30,9 +35,9 @@ program cubevstats
   do it = it1, it2, itstep
      if (it==1) then 
         write(1, '("# ",11(a,"'//TAB//'"))') 'Time', &
-             & 'Vr_vol_t', 'Vr_vol_n', 'Vr_vol_i', &
-             & 'Vr_mass_t', 'Vr_mass_n', 'Vr_mass_i', &
-             & 'Vr_em_t', 'Vr_em_n', 'Vr_em_i', 'Vr_em_if'
+             & 'Vr_vol_t', 'Vr_vol_m', 'Vr_vol_n', 'Vr_vol_i', &
+             & 'Vr_mass_t', 'Vr_mass_m', 'Vr_mass_n', 'Vr_mass_i', &
+             & 'Vr_em_i', 'Vr_em_if'
 
      end if
 
@@ -47,6 +52,8 @@ program cubevstats
         allocate( x(nx, ny, nz), y(nx, ny, nz), z(nx, ny, nz), r(nx, ny, nz) )
         allocate( vx(nx, ny, nz), vy(nx, ny, nz), vz(nx, ny, nz) )
         allocate( m(nx, ny, nz) )
+        allocate( AV(nx, ny, nz) )
+        allocate( xmol(nx, ny, nz), wi(nx, ny, nz), wn(nx, ny, nz), wm(nx, ny, nz) )
      end if
      d = fitscube/mp/mu
 
@@ -64,6 +71,10 @@ program cubevstats
      call fitsread(trim(fitsfilename))
      vz = fitscube
 
+     write(fitsfilename, '(2a,i4.4,a)') trim(prefix), '-AV', it, '.fits'
+     call fitsread(trim(fitsfilename))
+     AV = fitscube
+
      ! Position
      forall(i=1:nx, j=1:ny, k=1:nz)
         ! cartesian distances from the center
@@ -80,28 +91,38 @@ program cubevstats
      ! We cut it out by only considering a sphere of radius 1 pc. 
      rmax = (1.0 + real(it)/50.0)*0.25*real(nx)
      m = r < rmax
-     
+
+
+     ! WJH 05 Jul 2010 - New distinction between neutral/molecular
+     ! this is copied from the python code in mhd-pressures.py
+     xmol = 1.0 - 1.0/(1.0 + exp(mol_sharpness*(AV-mol_AV0)))
+
+     ! weights for ionized/neutral/molecular
+     wi = xi
+     wn = (1.-xi)*(1.-xmol)
+     wm = (1.-xi)*xmol
+
      ! volume-weighted averages
      vr_vol_tot = sum(vr)/real(nx*ny*nz)
-     vr_vol_n = sum(vr*(1.-xi))/sum(1.-xi)
-     vr_vol_i = sum(vr*xi, mask=m)/sum(xi, mask=m)
+     vr_vol_m = sum(vr*wm)/sum(wm)
+     vr_vol_n = sum(vr*wn)/sum(wn)
+     vr_vol_i = sum(vr*wi, mask=m)/sum(wi, mask=m)
 
      ! mass-weighted averages
      vr_mass_tot = sum(vr*d)/sum(d)
-     vr_mass_n = sum(vr*(1.-xi)*d)/sum((1.-xi)*d)
-     vr_mass_i = sum(vr*xi*d, mask=m)/sum(xi*d, mask=m)
+     vr_mass_m = sum(vr*wm*d)/sum(wm*d)
+     vr_mass_n = sum(vr*wn*d)/sum(wn*d)
+     vr_mass_i = sum(vr*wi*d, mask=m)/sum(wi*d, mask=m)
 
-     ! emission-weighted averages (assumed prop to n^2)
-     vr_em_tot = sum(vr*d**2)/sum(d**2)
-     vr_em_n = sum(vr*((1.-xi)*d)**2)/sum(((1.-xi)*d)**2)
+     ! emission-weighted average (assumed prop to n^2)
      vr_em_i = sum(vr*(xi*d)**2, mask=m)/sum((xi*d)**2, mask=m)
      ! and finally, with weighting for partially ionized gas at i-front
      vr_em_if = sum(vr*xi*(1.-xi)*d**2, mask=m)/sum(xi*(1.-xi)*d**2, mask=m)
 
      write(1, '(i4.4,"'//TAB//'",10(es11.3,"'//TAB//'")))') it, &
-             & vr_vol_tot, vr_vol_n, vr_vol_i, &
-             & vr_mass_tot, vr_mass_n, vr_mass_i, &
-             & vr_em_tot, vr_em_n, vr_em_i, vr_em_if
+             & vr_vol_tot, vr_vol_m, vr_vol_n, vr_vol_i, &
+             & vr_mass_tot, vr_mass_m, vr_mass_n, vr_mass_i, &
+             & vr_em_i, vr_em_if
 
   end do
   
