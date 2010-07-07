@@ -11,13 +11,18 @@ program cubestats
   integer :: nx, ny, nz, i, j, k
   real :: rmax
   real :: rif_max, rif_min
-  real :: vrms_vol_t, vrms_vol_n, vrms_vol_i
-  real :: vrms_mass_t, vrms_mass_n, vrms_mass_i
+  real :: vrms_vol_m, vrms_vol_n, vrms_vol_i
+  real :: vrms_mass_m, vrms_mass_n, vrms_mass_i
   real :: rx1, rx2, rmean_vol_i, rmean_mass_i
   real :: frac_ion_vol1, frac_ion_vol2, frac_ion_mass
   character(len=1), parameter :: TAB = achar(9)
   character(len=15) :: itstring
   real, parameter :: pi = 3.14159265358979, cubesize = 4.0*3.086e18
+  ! WJH 07 Jul 2010 - New distinction between neutral/molecular gas
+  ! this is copied from the python code in mhd-pressures.py
+  real, parameter :: mol_AV0 = 3.0                           ! position of molecular transition 
+  real, parameter :: mol_sharpness = 4.0                     ! sharpness of molecular transition
+  real, allocatable, dimension(:,:,:) :: AV, xmol, wi, wn, wm
 
   print *, 'Run prefix (e.g., 30112005_c)?'
   read '(a)', prefix
@@ -33,8 +38,8 @@ program cubestats
 
   write(1, '("# ",10(a,"'//TAB//'"))') 'Time', &
        & 'Ifrac_v', 'Ifrac_v2', 'Ifrac_m', &
-       & 'Vrms_vol_t', 'Vrms_vol_n', 'Vrms_vol_i', &
-       & 'Vrms_mass_t', 'Vrms_mass_n', 'Vrms_mass_i'
+       & 'Vrms_vol_m', 'Vrms_vol_n', 'Vrms_vol_i', &
+       & 'Vrms_mass_m', 'Vrms_mass_n', 'Vrms_mass_i'
   write(2, '("# ",7(a,"'//TAB//'"))') 'Time', &
        & 'rx1', 'rx2', 'rmean_vol_i', 'rmean_mass_i', 'rif_min', 'rif_max'
 
@@ -49,6 +54,8 @@ program cubestats
         allocate( d(nx, ny, nz), x(nx, ny, nz), ion_mask(nx, ny, nz) )
         allocate( u(nx, ny, nz), v(nx, ny, nz), w(nx, ny, nz) )
         allocate( r(nx, ny, nz), m(nx, ny, nz) )
+        allocate( AV(nx, ny, nz) )
+        allocate( xmol(nx, ny, nz), wi(nx, ny, nz), wn(nx, ny, nz), wm(nx, ny, nz) )
      end if
 
      d = fitscube/mp/mu
@@ -67,6 +74,10 @@ program cubestats
      call fitsread(trim(fitsfilename))
      w = fitscube
 
+     write(fitsfilename, '(2a,i4.4,a)') trim(prefix), '-AV', it, '.fits'
+     call fitsread(trim(fitsfilename))
+     AV = fitscube
+
      forall(i=1:nx, j=1:ny, k=1:nz)
         ! radial distance from center in grid units
         r(i, j, k) = &
@@ -82,6 +93,17 @@ program cubestats
      ! growing linearly with time. 
      rmax = (1.0 + real(it)/50.0)*0.25*real(nx)
      m = r < rmax
+
+
+     ! WJH 05 Jul 2010 - New distinction between neutral/molecular
+     ! this is copied from the python code in mhd-pressures.py
+     xmol = 1.0 - 1.0/(1.0 + exp(mol_sharpness*(AV-mol_AV0)))
+
+     ! weights for ionized/neutral/molecular
+     wi = x
+     wn = (1.-x)*(1.-xmol)
+     wm = (1.-x)*xmol
+
 
      ion_mask = x>0.5
 
@@ -105,21 +127,20 @@ program cubestats
      rmean_mass_i = (cubesize/real(nx))*sum(r*d*x, mask=m)/sum(d*x, mask=m)
 
      ! the 1D RMS velocity - this is the one we will use
-     vrms_vol_t = sqrt(sum(u*u + v*v + w*w)/real(3*nx*ny*nz))
-     ! same but mass-weighted
-     vrms_mass_t = sqrt(sum(d*(u*u + v*v + w*w))/(3*sum(d)))
+     vrms_vol_m = sqrt(sum((u*u + v*v + w*w)*wm)/(3*sum(wm)))
+     vrms_mass_n = sqrt(sum((u*u + v*v + w*w)*d*wm)/(3*sum(d*wm)))
 
-     vrms_vol_i = sqrt(sum((u*u + v*v + w*w)*x, mask=m)/(3*sum(x, mask=m)))
-     vrms_mass_i = sqrt(sum((u*u + v*v + w*w)*d*x, mask=m)/(3*sum(d*x, mask=m)))
+     vrms_vol_i = sqrt(sum((u*u + v*v + w*w)*wi, mask=m)/(3*sum(wi, mask=m)))
+     vrms_mass_i = sqrt(sum((u*u + v*v + w*w)*d*wi, mask=m)/(3*sum(d*wi, mask=m)))
 
-     vrms_vol_n = sqrt(sum((u*u + v*v + w*w)*(1.-x))/(3*sum((1.-x))))
-     vrms_mass_n = sqrt(sum((u*u + v*v + w*w)*d*(1.-x))/(3*sum(d*(1.-x))))
+     vrms_vol_n = sqrt(sum((u*u + v*v + w*w)*wn)/(3*sum(wn)))
+     vrms_mass_n = sqrt(sum((u*u + v*v + w*w)*d*wn)/(3*sum(d*wn)))
 
      if (mod(it,10)==0) print *, 'Done timestep: ', it
      write(1, '(i4.4,"'//TAB//'",9(es11.3,"'//TAB//'"))') it, &
           & frac_ion_vol1, frac_ion_vol2, frac_ion_mass, &
-          & vrms_vol_t, vrms_vol_n, vrms_vol_i,  &
-          & vrms_mass_t, vrms_mass_n, vrms_mass_i
+          & vrms_vol_m, vrms_vol_n, vrms_vol_i,  &
+          & vrms_mass_m, vrms_mass_n, vrms_mass_i
 
 
      write(2, '(i4.4,"'//TAB//'",6(es11.3,"'//TAB//'"))') it, &
