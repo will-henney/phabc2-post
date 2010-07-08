@@ -95,7 +95,12 @@ program cubevstats
 
      ! WJH 05 Jul 2010 - New distinction between neutral/molecular
      ! this is copied from the python code in mhd-pressures.py
-     xmol = 1.0 - 1.0/(1.0 + exp(mol_sharpness*(AV-mol_AV0)))
+     xm_arg = mol_sharpness*(AV-mol_AV0)
+     if (xm_arg > 100.0) then
+        xmol = 1.0
+     else
+        xmol = 1.0 - 1.0/(1.0 + exp(xm_arg))
+     end if
 
      ! weights for ionized/neutral/molecular
      wi = xi
