@@ -96,7 +96,7 @@ program cubevstats
      ! WJH 05 Jul 2010 - New distinction between neutral/molecular
      ! this is copied from the python code in mhd-pressures.py
      xm_arg = mol_sharpness*(AV-mol_AV0)
-     where (xm_arg > 100.0) 
+     where (xm_arg > 10.0) 
         xmol = 1.0
      elsewhere
         xmol = 1.0 - 1.0/(1.0 + exp(xm_arg))
