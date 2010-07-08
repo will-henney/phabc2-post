@@ -22,7 +22,7 @@ program cubestats
   ! this is copied from the python code in mhd-pressures.py
   real, parameter :: mol_AV0 = 3.0                           ! position of molecular transition 
   real, parameter :: mol_sharpness = 4.0                     ! sharpness of molecular transition
-  real, allocatable, dimension(:,:,:) :: AV, xmol, wi, wn, wm
+  real, allocatable, dimension(:,:,:) :: AV, xmol, wi, wn, wm, xm_arg
 
   print *, 'Run prefix (e.g., 30112005_c)?'
   read '(a)', prefix
@@ -55,7 +55,7 @@ program cubestats
         allocate( u(nx, ny, nz), v(nx, ny, nz), w(nx, ny, nz) )
         allocate( r(nx, ny, nz), m(nx, ny, nz) )
         allocate( AV(nx, ny, nz) )
-        allocate( xmol(nx, ny, nz), wi(nx, ny, nz), wn(nx, ny, nz), wm(nx, ny, nz) )
+        allocate( xmol(nx, ny, nz), wi(nx, ny, nz), wn(nx, ny, nz), wm(nx, ny, nz), xm_arg(nx, ny, nz) )
      end if
 
      d = fitscube/mp/mu
@@ -98,11 +98,12 @@ program cubestats
      ! WJH 05 Jul 2010 - New distinction between neutral/molecular
      ! this is copied from the python code in mhd-pressures.py
      xm_arg = mol_sharpness*(AV-mol_AV0)
-     if (xm_arg > 100.0) then
+     where (xm_arg > 100.0) 
         xmol = 1.0
-     else
+     elsewhere
         xmol = 1.0 - 1.0/(1.0 + exp(xm_arg))
-     end if
+     end where
+     
      
      ! weights for ionized/neutral/molecular
      wi = x
