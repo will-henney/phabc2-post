@@ -13,8 +13,9 @@ program cubestats
   real :: rif_max, rif_min
   real :: vrms_vol_m, vrms_vol_n, vrms_vol_i
   real :: vrms_mass_m, vrms_mass_n, vrms_mass_i
-  real :: rx1, rx2, rmean_vol_i, rmean_mass_i
+  real :: rx1, rx2, rmean_vol_i, rmean_mass_i, rpdr
   real :: frac_ion_vol1, frac_ion_vol2, frac_ion_mass
+  real :: frac_mol_vol, frac_mol_mass, frac_neut_vol, frac_neut_mass
   character(len=1), parameter :: TAB = achar(9)
   character(len=15) :: itstring
   real, parameter :: pi = 3.14159265358979, cubesize = 4.0*3.086e18
@@ -40,8 +41,8 @@ program cubestats
        & 'Ifrac_v', 'Ifrac_v2', 'Ifrac_m', &
        & 'Vrms_vol_m', 'Vrms_vol_n', 'Vrms_vol_i', &
        & 'Vrms_mass_m', 'Vrms_mass_n', 'Vrms_mass_i'
-  write(2, '("# ",7(a,"'//TAB//'"))') 'Time', &
-       & 'rx1', 'rx2', 'rmean_vol_i', 'rmean_mass_i', 'rif_min', 'rif_max'
+  write(2, '("# ",8(a,"'//TAB//'"))') 'Time', &
+       & 'rx1', 'rx2', 'rmean_vol_i', 'rmean_mass_i', 'rif_min', 'rif_max', 'rpdr'
 
   do it = it1, it2, itstep
      write(fitsfilename, '(2a,i4.4,a)') trim(prefix), '-dd', it, '.fits'
@@ -106,9 +107,9 @@ program cubestats
      
      
      ! weights for ionized/neutral/molecular
-     wi = x
-     wn = (1.-x)*(1.-xmol)
-     wm = (1.-x)*xmol
+     wi = max(x, 0.0)
+     wn = max((1.-x)*(1.-xmol), 0.0)
+     wm = max((1.-x)*xmol, 0.0)
 
 
      ion_mask = x>0.5
@@ -120,9 +121,18 @@ program cubestats
      frac_ion_vol2 = sum(x, mask=m)/real(nx*ny*nz)
      frac_ion_mass = sum(x*d, mask=m)/sum(d)
 
+     frac_mol_vol = sum(wm)/real(nx*ny*nz)
+     frac_mol_mass = sum(wm*d)/sum(d)
+
+     frac_neut_vol = sum(wn)/real(nx*ny*nz)
+     frac_neut_mass = sum(wn*d)/sum(d)
+
      ! direction-averaged radius of ionized volume
      rx1 = cubesize*(frac_ion_vol1*3.0/4.0/pi)**(1./3.)
      rx2 = cubesize*(frac_ion_vol2*3.0/4.0/pi)**(1./3.)
+
+     ! same for dissociation front
+     rpdr = cubesize*((frac_ion_vol2 + frac_neut_vol)*3.0/4.0/pi)**(1./3.)
 
      ! min/max i-front radius
      rif_max = maxval(r, mask=ion_mask)
@@ -134,7 +144,7 @@ program cubestats
 
      ! the 1D RMS velocity - this is the one we will use
      vrms_vol_m = sqrt(sum((u*u + v*v + w*w)*wm)/(3*sum(wm)))
-     vrms_mass_n = sqrt(sum((u*u + v*v + w*w)*d*wm)/(3*sum(d*wm)))
+     vrms_mass_m = sqrt(sum((u*u + v*v + w*w)*d*wm)/(3*sum(d*wm)))
 
      vrms_vol_i = sqrt(sum((u*u + v*v + w*w)*wi, mask=m)/(3*sum(wi, mask=m)))
      vrms_mass_i = sqrt(sum((u*u + v*v + w*w)*d*wi, mask=m)/(3*sum(d*wi, mask=m)))
@@ -149,8 +159,8 @@ program cubestats
           & vrms_mass_m, vrms_mass_n, vrms_mass_i
 
 
-     write(2, '(i4.4,"'//TAB//'",6(es11.3,"'//TAB//'"))') it, &
-          & rx1, rx2, rmean_vol_i, rmean_mass_i, rif_min, rif_max
+     write(2, '(i4.4,"'//TAB//'",7(es11.3,"'//TAB//'"))') it, &
+          & rx1, rx2, rmean_vol_i, rmean_mass_i, rif_min, rif_max, rpdr
   end do
 
 end program cubestats

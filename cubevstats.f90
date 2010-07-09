@@ -33,7 +33,7 @@ program cubevstats
   open(1, file=trim(prefix)//itstring//'.vstats', action='write')
 
   do it = it1, it2, itstep
-     if (it==1) then 
+     if (it<=itstep) then 
         write(1, '("# ",11(a,"'//TAB//'"))') 'Time', &
              & 'Vr_vol_t', 'Vr_vol_m', 'Vr_vol_n', 'Vr_vol_i', &
              & 'Vr_mass_t', 'Vr_mass_m', 'Vr_mass_n', 'Vr_mass_i', &
@@ -103,9 +103,9 @@ program cubevstats
      end where
 
      ! weights for ionized/neutral/molecular
-     wi = xi
-     wn = (1.-xi)*(1.-xmol)
-     wm = (1.-xi)*xmol
+     wi = max(xi, 0.0)
+     wn = max((1.-xi)*(1.-xmol), 0.0)
+     wm = max((1.-xi)*xmol, 0.0)
 
      ! volume-weighted averages
      vr_vol_tot = sum(vr)/real(nx*ny*nz)
