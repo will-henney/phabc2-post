@@ -33,13 +33,13 @@ program cubevstats
   open(1, file=trim(prefix)//itstring//'.vstats', action='write')
 
   do it = it1, it2, itstep
-     if (it<=itstep) then 
+!!$     if (it<=itstep) then 
         write(1, '("# ",11(a,"'//TAB//'"))') 'Time', &
              & 'Vr_vol_t', 'Vr_vol_m', 'Vr_vol_n', 'Vr_vol_i', &
              & 'Vr_mass_t', 'Vr_mass_m', 'Vr_mass_n', 'Vr_mass_i', &
              & 'Vr_em_i', 'Vr_em_if'
 
-     end if
+!!$     end if
 
      write(fitsfilename, '(2a,i4.4,a)') trim(prefix), '-dd', it, '.fits'
      call fitsread(trim(fitsfilename))

@@ -37,8 +37,10 @@ program cubestats
   open(1, file=trim(prefix)//itstring//'.stats', action='write')
   open(2, file=trim(prefix)//itstring//'.rstats', action='write')
 
-  write(1, '("# ",10(a,"'//TAB//'"))') 'Time', &
-       & 'Ifrac_v', 'Ifrac_v2', 'Ifrac_m', &
+  write(1, '("# ",13(a,"'//TAB//'"))') 'Time', &
+       & 'Mfrac_v', 'Mfrac_m', &
+       & 'Nfrac_v', 'Nfrac_m', &
+       & 'Ifrac_v2', 'Ifrac_m', &
        & 'Vrms_vol_m', 'Vrms_vol_n', 'Vrms_vol_i', &
        & 'Vrms_mass_m', 'Vrms_mass_n', 'Vrms_mass_i'
   write(2, '("# ",8(a,"'//TAB//'"))') 'Time', &
@@ -153,8 +155,10 @@ program cubestats
      vrms_mass_n = sqrt(sum((u*u + v*v + w*w)*d*wn)/(3*sum(d*wn)))
 
      if (mod(it,10)==0) print *, 'Done timestep: ', it
-     write(1, '(i4.4,"'//TAB//'",9(es11.3,"'//TAB//'"))') it, &
-          & frac_ion_vol1, frac_ion_vol2, frac_ion_mass, &
+     write(1, '(i4.4,"'//TAB//'",12(es11.3,"'//TAB//'"))') it, &
+          & frac_mol_vol, frac_mol_mass, &
+          & frac_neut_vol, frac_neut_mass, &
+          & frac_ion_vol2, frac_ion_mass, &
           & vrms_vol_m, vrms_vol_n, vrms_vol_i,  &
           & vrms_mass_m, vrms_mass_n, vrms_mass_i
 
