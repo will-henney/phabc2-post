@@ -1,29 +1,35 @@
+! CALCULATES VARIOUS STATISTICS FOR THE DATA CUBES
+!
+! Usage: printf '%s\n' ID T1 T2 TSTEP| ./cubestats
+!
+! 17 Jul 2008 - minimal modifications to work with the Fabio datasets
+
 program cubestats
-  ! calculates various statistics for the data cubes
-  ! 17 Jul 2008 - minimal modifications to work with the Fabio datasets
   use wfitsutils, only: fitsread, fitscube
   implicit none
-  real, parameter :: boltzmann_k = 1.3806503e-16, mp = 1.67262158e-24, mu = 1.3
-  real, dimension(:,:,:), allocatable :: d, x, u, v, w, r
+  integer, parameter :: dp = kind(1.0d0)
+  real(dp), parameter :: boltzmann_k = 1.3806503e-16_dp, mp = 1.67262158e-24_dp, mu = 1.3_dp
+  real(dp), dimension(:,:,:), allocatable :: d, x, u, v, w, r
   logical, dimension(:,:,:), allocatable :: ion_mask, m
   character(len=128) :: prefix, fitsfilename
   integer :: it1, it2, it, itstep
   integer :: nx, ny, nz, i, j, k
-  real :: rmax
-  real :: rif_max, rif_min
-  real :: vrms_vol_m, vrms_vol_n, vrms_vol_i
-  real :: vrms_mass_m, vrms_mass_n, vrms_mass_i
-  real :: rx1, rx2, rmean_vol_i, rmean_mass_i, rpdr
-  real :: frac_ion_vol1, frac_ion_vol2, frac_ion_mass
-  real :: frac_mol_vol, frac_mol_mass, frac_neut_vol, frac_neut_mass
+  real(dp) :: rmax
+  real(dp) :: rif_max, rif_min
+  real(dp) :: vrms_vol_m, vrms_vol_n, vrms_vol_i
+  real(dp) :: vrms_mass_m, vrms_mass_n, vrms_mass_i
+  real(dp) :: rx1, rx2, rmean_vol_i, rmean_mass_i, rpdr
+  real(dp) :: frac_ion_vol1, frac_ion_vol2, frac_ion_mass
+  real(dp) :: frac_mol_vol, frac_mol_mass, frac_neut_vol, frac_neut_mass
   character(len=1), parameter :: TAB = achar(9)
   character(len=15) :: itstring
-  real, parameter :: pi = 3.14159265358979, cubesize = 4.0*3.086e18
+  real(dp), parameter :: pi = 3.14159265358979_dp, cubesize = 4.0_dp*3.086e18_dp
   ! WJH 07 Jul 2010 - New distinction between neutral/molecular gas
   ! this is copied from the python code in mhd-pressures.py
-  real, parameter :: mol_AV0 = 3.0                           ! position of molecular transition 
-  real, parameter :: mol_sharpness = 4.0                     ! sharpness of molecular transition
-  real, allocatable, dimension(:,:,:) :: AV, xmol, wi, wn, wm, xm_arg
+  real(dp), parameter :: mol_AV0 = 3.0_dp                           ! position of molecular transition 
+  real(dp), parameter :: mol_sharpness = 4.0_dp                     ! sharpness of molecular transition
+  real(dp), allocatable, dimension(:,:,:) :: AV, xmol, wi, wn, wm, xm_arg
+  real(dp), allocatable, dimension(:,:,:) :: sumfrac_vol, sumfrac_mass ! sum of weights
 
   print *, 'Run prefix (e.g., 30112005_c)?'
   read '(a)', prefix
@@ -59,6 +65,7 @@ program cubestats
         allocate( r(nx, ny, nz), m(nx, ny, nz) )
         allocate( AV(nx, ny, nz) )
         allocate( xmol(nx, ny, nz), wi(nx, ny, nz), wn(nx, ny, nz), wm(nx, ny, nz), xm_arg(nx, ny, nz) )
+        allocate( sumfrac_vol(nx, ny, nz), sumfrac_mass(nx, ny, nz) )
      end if
 
      d = fitscube/mp/mu
@@ -85,64 +92,64 @@ program cubestats
         ! radial distance from center in grid units
         r(i, j, k) = &
              & sqrt( &
-             &        (real(i) - 0.5*real(nx+1))**2 &
-             &      + (real(j) - 0.5*real(ny+1))**2 &
-             &      + (real(k) - 0.5*real(nz+1))**2 &
+             &        (real(i, dp) - 0.5_dp*real(nx+1, dp))**2 &
+             &      + (real(j, dp) - 0.5_dp*real(ny+1, dp))**2 &
+             &      + (real(k, dp) - 0.5_dp*real(nz+1, dp))**2 &
              &     )
      end forall
      ! For early times, we have some partially ionized material
      ! around the edges of the grid, which is skewing our statistics.
      ! We cut it out by only considering a sphere of radius 1 pc at start,
      ! growing linearly with time. 
-     rmax = (1.0 + real(it)/50.0)*0.25*real(nx)
+     rmax = (1.0_dp + real(it, dp)/50.0_dp)*0.25_dp*real(nx, dp)
      m = r < rmax
 
 
      ! WJH 05 Jul 2010 - New distinction between neutral/molecular
      ! this is copied from the python code in mhd-pressures.py
      xm_arg = mol_sharpness*(AV-mol_AV0)
-     where (xm_arg > 10.0) 
-        xmol = 1.0
+     where (xm_arg > 10.0_dp) 
+        xmol = 1.0_dp
      elsewhere
-        xmol = 1.0 - 1.0/(1.0 + exp(xm_arg))
+        xmol = 1.0_dp - 1.0_dp/(1.0_dp + exp(xm_arg))
      end where
      
      
      ! weights for ionized/neutral/molecular
-     wi = max(x, 0.0)
-     wn = max((1.-x)*(1.-xmol), 0.0)
-     wm = max((1.-x)*xmol, 0.0)
+     wi = max(x, 0.0_dp)
+     wn = max((1._dp-x)*(1._dp-xmol), 0.0_dp)
+     wm = max((1._dp-x)*xmol, 0.0_dp)
 
 
-     ion_mask = x>0.5
+     ion_mask = x>0.5_dp
 
-     frac_ion_vol1 = count(ion_mask)/real(nx*ny*nz)
+     frac_ion_vol1 = count(ion_mask)/real(nx*ny*nz, dp)
      ! Note that we do not apply the radius cutoff mask to the denominator
      ! since we are considering that the stuff at the edges shoud "really"
      ! be neutral
-     frac_ion_vol2 = sum(x, mask=m)/real(nx*ny*nz)
+     frac_ion_vol2 = sum(x, mask=m)/real(nx*ny*nz, dp)
      frac_ion_mass = sum(x*d, mask=m)/sum(d)
 
-     frac_mol_vol = sum(wm)/real(nx*ny*nz)
+     frac_mol_vol = sum(wm)/real(nx*ny*nz, dp)
      frac_mol_mass = sum(wm*d)/sum(d)
 
-     frac_neut_vol = sum(wn)/real(nx*ny*nz)
+     frac_neut_vol = sum(wn)/real(nx*ny*nz, dp)
      frac_neut_mass = sum(wn*d)/sum(d)
 
      ! direction-averaged radius of ionized volume
-     rx1 = cubesize*(frac_ion_vol1*3.0/4.0/pi)**(1./3.)
-     rx2 = cubesize*(frac_ion_vol2*3.0/4.0/pi)**(1./3.)
+     rx1 = cubesize*(frac_ion_vol1*3.0_dp/4.0_dp/pi)**(1._dp/3._dp)
+     rx2 = cubesize*(frac_ion_vol2*3.0_dp/4.0_dp/pi)**(1._dp/3._dp)
 
      ! same for dissociation front
-     rpdr = cubesize*((frac_ion_vol2 + frac_neut_vol)*3.0/4.0/pi)**(1./3.)
+     rpdr = cubesize*((frac_ion_vol2 + frac_neut_vol)*3.0_dp/4.0_dp/pi)**(1._dp/3._dp)
 
      ! min/max i-front radius
      rif_max = maxval(r, mask=ion_mask)
      rif_min = minval(r, mask=.not.ion_mask)
 
      ! mean radius of ionized gas
-     rmean_vol_i = (cubesize/real(nx))*sum(r*x, mask=m)/sum(x, mask=m)
-     rmean_mass_i = (cubesize/real(nx))*sum(r*d*x, mask=m)/sum(d*x, mask=m)
+     rmean_vol_i = (cubesize/real(nx, dp))*sum(r*x, mask=m)/sum(x, mask=m)
+     rmean_mass_i = (cubesize/real(nx, dp))*sum(r*d*x, mask=m)/sum(d*x, mask=m)
 
      ! the 1D RMS velocity - this is the one we will use
      vrms_vol_m = sqrt(sum((u*u + v*v + w*w)*wm)/(3*sum(wm)))
@@ -160,11 +167,21 @@ program cubestats
           & frac_neut_vol, frac_neut_mass, &
           & frac_ion_vol2, frac_ion_mass, &
           & vrms_vol_m, vrms_vol_n, vrms_vol_i,  &
-          & vrms_mass_m, vrms_mass_n, vrms_mass_i
+          & vrms_mass_m, vrms_mass_n, vrms_mass_i  
 
 
      write(2, '(i4.4,"'//TAB//'",7(es11.3,"'//TAB//'"))') it, &
           & rx1, rx2, rmean_vol_i, rmean_mass_i, rif_min, rif_max, rpdr
+
+     
+     ! checking that all the fractions add up to unity globally
+     print *, 'Sum of global volume fractions = ', frac_ion_vol2 + frac_neut_vol + frac_mol_vol 
+     print *, 'Sum of global mass fractions = ', frac_ion_mass + frac_neut_mass + frac_mol_mass 
+
+     ! check the same locally
+     sumfrac_vol = wi + wn + wm 
+     print *, 'min/max summed volume fracs = ', minval(sumfrac_vol), maxval(sumfrac_vol)
+
   end do
 
 end program cubestats

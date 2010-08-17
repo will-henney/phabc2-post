@@ -2,25 +2,26 @@ program cubevstats
   ! calculates mean densities for the data cubes
   use wfitsutils, only: fitsread, fitscube
   implicit none
-  real, parameter :: boltzmann_k = 1.3806503e-16, mp = 1.67262158e-24, mu = 1.3
-  real, dimension(:,:,:), allocatable :: d, xi, vr, r, x, y, z, vx, vy, vz
+  integer, parameter :: dp = kind(1.0d0)
+  real(dp), parameter :: boltzmann_k = 1.3806503e-16_dp, mp = 1.67262158e-24_dp, mu = 1.3_dp
+  real(dp), dimension(:,:,:), allocatable :: d, xi, vr, r, x, y, z, vx, vy, vz
   logical, dimension(:,:,:), allocatable :: m
   character(len=128) :: prefix, fitsfilename
   integer :: it1, it2, it, itstep
   integer :: nx, ny, nz, i, j, k
-  real :: vr_vol_tot, vr_vol_n, vr_vol_i, vr_vol_m
-  real :: vr_mass_tot, vr_mass_n, vr_mass_i, vr_mass_m
-  real :: vr_em_i, vr_em_if
+  real(dp) :: vr_vol_tot, vr_vol_n, vr_vol_i, vr_vol_m
+  real(dp) :: vr_mass_tot, vr_mass_n, vr_mass_i, vr_mass_m
+  real(dp) :: vr_em_i, vr_em_if
   character(len=1), parameter :: TAB = achar(9)
   character(len=15) :: itstring
-  real, parameter :: pi = 3.14159265358979, cubesize = 4.0*3.086e18
+  real(dp), parameter :: pi = 3.14159265358979_dp, cubesize = 4.0_dp*3.086e18_dp
 !   integer, parameter :: itsmall = 70
-  real :: rmax
+  real(dp) :: rmax
   ! WJH 05 Jul 2010 - New distinction between neutral/molecular gas
   ! this is copied from the python code in mhd-pressures.py
-  real, parameter :: mol_AV0 = 3.0                           ! position of molecular transition 
-  real, parameter :: mol_sharpness = 4.0                     ! sharpness of molecular transition
-  real, allocatable, dimension(:,:,:) :: AV, xmol, wi, wn, wm, xm_arg
+  real(dp), parameter :: mol_AV0 = 3.0_dp                           ! position of molecular transition 
+  real(dp), parameter :: mol_sharpness = 4.0_dp                     ! sharpness of molecular transition
+  real(dp), allocatable, dimension(:,:,:) :: AV, xmol, wi, wn, wm, xm_arg
 
   print *, 'Run prefix (e.g., 30112005_c)?'
   read '(a)', prefix
@@ -78,9 +79,9 @@ program cubevstats
      ! Position
      forall(i=1:nx, j=1:ny, k=1:nz)
         ! cartesian distances from the center
-        x(i,j,k) = real(i) - 0.5*real(nx+1)
-        y(i,j,k) = real(j) - 0.5*real(ny+1)
-        z(i,j,k) = real(k) - 0.5*real(nz+1)
+        x(i,j,k) = real(i, dp) - 0.5_dp*real(nx+1, dp)
+        y(i,j,k) = real(j, dp) - 0.5_dp*real(ny+1, dp)
+        z(i,j,k) = real(k, dp) - 0.5_dp*real(nz+1, dp)
      end forall
      r = sqrt(x**2 + y**2 + z**2)
      ! radial component of velocity
@@ -89,26 +90,26 @@ program cubevstats
      ! For early times, we have some partially ionized material
      ! around the edges of the grid, which is skewing our statistics.
      ! We cut it out by only considering a sphere of radius 1 pc. 
-     rmax = (1.0 + real(it)/50.0)*0.25*real(nx)
+     rmax = (1.0_dp + real(it, dp)/50.0_dp)*0.25_dp*real(nx, dp)
      m = r < rmax
 
 
      ! WJH 05 Jul 2010 - New distinction between neutral/molecular
      ! this is copied from the python code in mhd-pressures.py
      xm_arg = mol_sharpness*(AV-mol_AV0)
-     where (xm_arg > 10.0) 
-        xmol = 1.0
+     where (xm_arg > 10.0_dp) 
+        xmol = 1.0_dp
      elsewhere
-        xmol = 1.0 - 1.0/(1.0 + exp(xm_arg))
+        xmol = 1.0_dp - 1.0_dp/(1.0_dp + exp(xm_arg))
      end where
 
      ! weights for ionized/neutral/molecular
-     wi = max(xi, 0.0)
-     wn = max((1.-xi)*(1.-xmol), 0.0)
-     wm = max((1.-xi)*xmol, 0.0)
+     wi = max(xi, 0.0_dp)
+     wn = max((1._dp-xi)*(1._dp-xmol), 0.0_dp)
+     wm = max((1._dp-xi)*xmol, 0.0_dp)
 
      ! volume-weighted averages
-     vr_vol_tot = sum(vr)/real(nx*ny*nz)
+     vr_vol_tot = sum(vr)/real(nx*ny*nz, dp)
      vr_vol_m = sum(vr*wm)/sum(wm)
      vr_vol_n = sum(vr*wn)/sum(wn)
      vr_vol_i = sum(vr*wi, mask=m)/sum(wi, mask=m)
@@ -122,7 +123,7 @@ program cubevstats
      ! emission-weighted average (assumed prop to n^2)
      vr_em_i = sum(vr*(xi*d)**2, mask=m)/sum((xi*d)**2, mask=m)
      ! and finally, with weighting for partially ionized gas at i-front
-     vr_em_if = sum(vr*xi*(1.-xi)*d**2, mask=m)/sum(xi*(1.-xi)*d**2, mask=m)
+     vr_em_if = sum(vr*xi*(1._dp-xi)*d**2, mask=m)/sum(xi*(1._dp-xi)*d**2, mask=m)
 
      write(1, '(i4.4,"'//TAB//'",10(es11.3,"'//TAB//'")))') it, &
              & vr_vol_tot, vr_vol_m, vr_vol_n, vr_vol_i, &
