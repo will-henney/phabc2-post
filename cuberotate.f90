@@ -38,7 +38,7 @@ contains
     sp = sin(phi*radians)
     axx = ax*ct + (ay*sp + az*cp)*st
     ayy = ay*cp - az*sp
-    axx = -ax*st + (ay*sp + az*cp)*ct
+    azz = -ax*st + (ay*sp + az*cp)*ct
   end subroutine spin
   
   subroutine rotate(cube, theta, phi, newcube)

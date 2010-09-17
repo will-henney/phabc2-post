@@ -1,6 +1,6 @@
 include arch.mk
 
-EXECS=cubeextras cubet enro2fits cubeemiss makerotmap globstats
+EXECS=cubeextras cubet enro2fits cubeemiss makerotmap makerotbmaps globstats
 
 all: $(EXECS)
 
@@ -34,6 +34,7 @@ cubeemiss.o:  wfitsutils.o emissmod.o em2levmod.o
 emissmod.o: em2levmod.o
 rotatetest.o: cuberotate.o wfitsutils.o
 makerotmap.o: cuberotate.o wfitsutils.o emissmod.o
+makerotbmaps.o: cuberotate.o wfitsutils.o
 cubet.o:  wfitsutils.o
 enro2fits.o:  wfitsutils.o
 
@@ -75,6 +76,8 @@ cubeextras: cubeextras.o wfitsutils.o
 rotatetest: rotatetest.o cuberotate.o wfitsutils.o
 	$(F90C) $(F90FLAGS) -o $@ $^ $(LFITS)
 makerotmap: makerotmap.o cuberotate.o wfitsutils.o emissmod.o em2levmod.o
+	$(F90C) $(F90FLAGS) -o $@ $^ $(LFITS)
+makerotbmaps: makerotbmaps.o cuberotate.o wfitsutils.o
 	$(F90C) $(F90FLAGS) -o $@ $^ $(LFITS)
 
 cubet: cubet.o wfitsutils.o
