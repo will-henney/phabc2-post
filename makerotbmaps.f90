@@ -3,12 +3,14 @@ program makerotbmaps
   use wfitsutils, only: fitswrite
   use cuberotate, only: rotate, spin, &
        & interpolation, interpolation_nearest, interpolation_linear
+  use mod_molfrac, only: molfrac
   implicit none
   integer :: i,  nx=0, ny, nz, nxx, nyy, nzz
-  real, dimension(:,:,:), allocatable :: bmapi, bmapn
-  real, dimension(:,:,:), allocatable :: d, xi, bx, by, bz ! original datacubes
+  real, dimension(:,:,:), allocatable :: bmapi, bmapn, bmapm
+  real, dimension(:,:), allocatable :: coli, coln, colm ! column densities
+  real, dimension(:,:,:), allocatable :: d, xi, bx, by, bz, AV ! original datacubes
   real :: theta, phi
-  real, dimension(:,:,:), allocatable :: dd, xxi, bbx, bby, bbz ! rotated datacubes
+  real, dimension(:,:,:), allocatable :: dd, xxi, bbx, bby, bbz, AAV, mm ! rotated datacubes
   real, dimension(:,:,:), allocatable :: bbxx, bbyy, bbzz ! rotated vectors
   character(len=128) :: prefix
   integer :: itime
@@ -56,6 +58,16 @@ program makerotbmaps
   call rotate(xi, theta, phi, xxi)
   deallocate(xi)
 
+  ! Visual extinction
+  allocate(AAV(nxx,nyy,nzz))
+  call read_cube(AV, 'AV')
+  call rotate(AV, theta, phi, AAV)
+  deallocate(AV)
+  ! Molecular fraction
+  allocate(mm(nxx,nyy,nzz))
+  mm = molfrac(AAV)
+  deallocate(AAV)
+
   ! B field
   allocate(bbx(nxx,nyy,nzz))
   call read_cube(bx, 'bx')
@@ -77,24 +89,45 @@ program makerotbmaps
   call spin(bbx, bby, bbz, theta, phi, bbxx, bbyy, bbzz) 
   deallocate(bbx, bby, bbz)
 
- 
-  ! integration is along the new zz-axis
-  allocate(bmapi(3, nxx, nyy), bmapn(3, nxx, nyy))
 
+  ! integration is along the new zz-axis
+  allocate(bmapi(3, nxx, nyy), bmapn(3, nxx, nyy), bmapm(3, nxx, nyy))
+  allocate(coli(nxx, nyy), coln(nxx, nyy), colm(nxx, nyy))
+
+  ! B field weighted by ionized column
   bmapi(1, :, :) = sum(dd*xxi*bbxx, dim=3)
   bmapi(2, :, :) = sum(dd*xxi*bbyy, dim=3)
   bmapi(3, :, :) = sum(dd*xxi*bbzz, dim=3)
 
-  bmapn(1, :, :) = sum(dd*(1.-xxi)*bbxx, dim=3)
-  bmapn(2, :, :) = sum(dd*(1.-xxi)*bbyy, dim=3)
-  bmapn(3, :, :) = sum(dd*(1.-xxi)*bbzz, dim=3)
+  ! B field weighted by neutral column
+  bmapn(1, :, :) = sum(dd*(1.-xxi)*(1.-mm)*bbxx, dim=3)
+  bmapn(2, :, :) = sum(dd*(1.-xxi)*(1.-mm)*bbyy, dim=3)
+  bmapn(3, :, :) = sum(dd*(1.-xxi)*(1.-mm)*bbzz, dim=3)
+
+  ! B field weighted by molecular column
+  bmapm(1, :, :) = sum(dd*(1.-xxi)*mm*bbxx, dim=3)
+  bmapm(2, :, :) = sum(dd*(1.-xxi)*mm*bbyy, dim=3)
+  bmapm(3, :, :) = sum(dd*(1.-xxi)*mm*bbzz, dim=3)
+
+  ! ... and the columns themselves
+  coli(:, :) = sum(dd*xxi, dim=3)
+  coln(:, :) = sum(dd*(1.-xxi)*(1.-mm), dim=3)
+  colm(:, :) = sum(dd*(1.-xxi)*mm, dim=3)
 
   do i = 1, 3
      call fitswrite(bmapi(i, :, :), &
-          & trim(prefix)//'-bmap-i-'//axid(i)//'-'//rotid//ctime//'.fits')
+          & trim(prefix)//'-bmap-i-'//axid(i)//rotid//ctime//'.fits')
      call fitswrite(bmapn(i, :, :), &
-          & trim(prefix)//'-bmap-n-'//axid(i)//'-'//rotid//ctime//'.fits')
+          & trim(prefix)//'-bmap-n-'//axid(i)//rotid//ctime//'.fits')
+     call fitswrite(bmapm(i, :, :), &
+          & trim(prefix)//'-bmap-m-'//axid(i)//rotid//ctime//'.fits')
   end do
+  call fitswrite(coli, &
+       & trim(prefix)//'-colmap-i'//rotid//ctime//'.fits')
+  call fitswrite(coln, &
+       & trim(prefix)//'-colmap-n'//rotid//ctime//'.fits')
+  call fitswrite(colm, &
+       & trim(prefix)//'-colmap-m'//rotid//ctime//'.fits')
   
 contains
 

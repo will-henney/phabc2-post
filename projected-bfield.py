@@ -25,18 +25,20 @@ import numpy as N
 
 def load_fits(id):
     import pyfits
-    return pyfits.open('%s-bmap-%s--rot%+3.3i%+3.3i-%4.4i.fits' 
+    return pyfits.open('%s-bmap-%s-rot%+3.3i%+3.3i-%4.4i.fits' 
                        % (args.runid, id, args.theta, args.phi, args.itime))['PRIMARY'].data
 
 # Load in the required B-component maps
 bxi, byi, bzi = [load_fits("i-%s" % (xyz)) for xyz in "xyz"] # ionized
 bxn, byn, bzn = [load_fits("n-%s" % (xyz)) for xyz in "xyz"] # neutral
+bxm, bym, bzm = [load_fits("m-%s" % (xyz)) for xyz in "xyz"] # neutral
 
 
 # Do the graph
 import pyxgraph, pyx
-
-figwidth, figheight, margin = 10, 10, 2
+pyx.text.set(mode="latex")
+pyx.text.preamble(r"\usepackage{txfonts,color}\AtBeginDocument{\bfseries\boldmath}")
+figwidth, figheight, margin = 10, 10, 0.0
 
 # pm3d=[3,3,3] means linear in each channel
 # pm3d=[4,4,4] means x**2 in each channel
@@ -46,7 +48,7 @@ graymap = pyxgraph.ColMapper.ColorMapper("pm3d", exponent=1.0, invert=0, pm3d=[7
 # mycolmap = pyxgraph.ColMapper.ColorMapper("white-yellow-red-black", exponent=0.6, brightness=0.4)
 mycolmap = graymap
 
-bi_scale, bn_scale = 0.08, 15.0
+bi_scale, bn_scale, bm_scale = 0.09, 8.0, 12.0
 worldwidth, worldheight = args.boxsize, args.boxsize
 
 ## functions needed for vector plots
@@ -68,20 +70,30 @@ a = lambda k: theta[min(y(k),ny-1),min(x(k),nx-1)]*180/N.pi
 
 c = pyx.canvas.canvas()
 
-title_i = r'Rotation measure: \(\int n_\mathrm{e} B_\parallel \, dz\)'
-title_n = r'Rotation measure: \(\int n_\mathrm{n} B_\parallel \, dz\)'
+title_i, title_n, title_m = [r'\(B\)-Field weighted by %s gas: \(\int n_\mathrm{%s} \vec{B} \, dz\)' 
+                             % (species, sp) 
+                             for species, sp in ('ionized', 'ion'), ('neutral', 'neut'), ('molecular', 'mol')
+                            ]
 
-for title, bx, by, bz, bscale, xshift in [
-    [title_i, bxi, byi, bzi, bi_scale, 0],
-    [title_n, bxn, byn, bzn, bn_scale, figwidth + margin],
+def add_text(c, s, fmt="%s"):
+    "Put the text label 's' inside the box of canvas 'c'"
+    x, y = [6*pyx.unit.x_pt,] * 2
+    c.text(x, y, fmt % (s))
+    
+for title, bx, by, bz, bscale, xshift, yshift in [
+    [title_i, bxi, byi, bzi, bi_scale, 0, figwidth + margin],
+    [title_n, bxn, byn, bzn, bn_scale, figwidth + margin, figwidth + margin],
+    [title_m, bxm, bym, bzm, bm_scale, figwidth + margin, 0],
     ]:
     g = pyxgraph.pyxgraph(
         xlimits = (0, args.boxsize), ylimits = (0, args.boxsize), 
         width = figwidth, height = figheight,
         key = None,
-        title = title,
-        xlabel=r'$x$ (pc)',
-        ylabel=r'$y$ (pc)',
+        title = None, xlabel = None, ylabel = None, 
+        # title = title,
+        # xlabel=r'$x$ (pc)',
+        # ylabel=r'$y$ (pc)',
+        xtexter = False, ytexter = False,
         )
 
     # Grayscale of z component
@@ -106,7 +118,28 @@ for title, bx, by, bz, bscale, xshift in [
                                              arrowattrs=vectorstyles,
                                              lineattrs=vectorstyles,
                                              )])
-    c.insert(g, [pyx.trafo.translate(xshift, 0)])
+    add_text(g, title)
+    c.insert(g, [pyx.trafo.translate(xshift, yshift)])
+
+# Now read in the column densities
+from myfitsutils import RGB3Image
+from PIL import Image
+colm, coln, coli = ['%s-colmap-%s-rot%+3.3i%+3.3i-%4.4i.fits' 
+                       % (args.runid, mni, args.theta, args.phi, args.itime)
+                    for mni in "mni"]
+maxcolm, maxcoln, maxcoli = [8.e5, 6.e5, 4.e4] # these are funny units - should multiply by cell size
+rgbim = RGB3Image(
+    redfile=colm, greenfile=coln, bluefile=coli, 
+    redmin = 0.0, greenmin = 0.0, bluemin = 0.0,
+    redmax = maxcolm, greenmax = maxcoln, bluemax = maxcoli,
+    )
+rgbim = rgbim.transpose(Image.FLIP_TOP_BOTTOM)
+c.insert(pyx.bitmap.bitmap(0, 0, rgbim, width=figwidth))
+add_text(c, 
+         r"RGB column densities: " + 
+         ",".join([r"\color{%s}{\(\int n_\mathrm{%s}\, dz\)}" % (col, sp) 
+                   for col, sp in ["red", "mol"], ["green", "neut"], ["blue", "ion"]]),
+         fmt=r"\color{white}{%s}")
 
 # Write out to PDF file
 execroot = os.path.split(sys.argv[0])[-1].split('.')[0]
