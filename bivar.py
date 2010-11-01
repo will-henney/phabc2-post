@@ -37,7 +37,7 @@ class PlotVariable(object):
 
     def setminmaxn(self, min=None, max=None, n=None, logarithmic=0):
 	"n is number of bins to use for the images"
-	self.n = n
+	if not n is None: self.n = n
 	self.min = min
 	self.max = max
 	self.logarithmic = logarithmic

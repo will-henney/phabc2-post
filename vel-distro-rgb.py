@@ -82,18 +82,18 @@ bivar.PlotVariable.n = 50                               # size of pdf images
 rrvar = bivar.PlotVariable(rr)          # radius
 rmax = rr.max()
 rrvar.setminmaxn(min=0.0, max=rmax)
-rrvar.settitle(r'Radius, \(r\)', 'Radius')
+rrvar.settitle(r'Radius, \(r\), pc', 'Radius')
 
-vrvar = bivar.PlotVariable(vr)          # radial velocity
-vrmin, vrmax = -3.0, 15.0
+vrvar = bivar.PlotVariable(vr, drawzero=1)          # radial velocity
+vrmin, vrmax = -20.0, 20.0
 vrvar.setminmaxn(min=vrmin, max=vrmax)
-vrvar.settitle(r'Radial velocity, \(V_r\)', 'V_r')
+vrvar.settitle(r'Radial velocity, \(V_r\), km s\(^{-1}\)', 'V_r')
 
 g = bivar.Graph(rrvar, vrvar, weights=weights, gamma=2.0, statslevel=1)
 
 # add a title
-gtitle = r'\texttt{%s}, $t = %.3f$~Myr' % (runid, args.itime*args.timestep/1.e6)
+gtitle = r'\texttt{%s}, $t = %.3f$~Myr' % (args.runid, args.itime*args.timestep/1.e6)
 g.text(0.5*g.figwidth, g.figheight+6*pyx.unit.x_pt, gtitle, [pyx.text.halign.center])
 
 # and save
-g.writePDFfile('%s-%s-%4.4i' % (execname.split('.')[0], runid, itime))
+g.writePDFfile('%s-%s-%4.4i' % (execname.split('.')[0], args.runid, args.itime))
