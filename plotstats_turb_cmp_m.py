@@ -198,46 +198,52 @@ for QH, starid, runids, i2s, tmax in runtab:
     ## RMS and mean radial velocities
     ##
 
+    c = canvas.canvas()
+
     km = 1.e5
 
-    g = graph.graphxy(width=figwidth, height=figwidth,
-		      x=graph.axis.linear(min=0, max=tmax, title='Time, 1000~yr'), 
-		      y=graph.axis.linear(min=0, max=13,
-					  title=r'Mean gas velocities, km~s$^{-1}$'),
-		      key=graph.key.key(pos='tr', textattrs=[trafo.scale(0.7)])
-		      )
-    for i in 0, 1:
-	d = []; dd = []
-	for Vel, title in [ 
-			     ('Vrms_vol_i', 
-			      r'$\left\langle v^2\right\rangle_\mathrm{ion}^{1/2}$'),
-			     ('Vrms_vol_n', 
-			      r'$\left\langle v^2\right\rangle_\mathrm{neut}^{1/2}$'), 
-			     ]:
-	    if i == 1 : title = None
-	    d.append(graph.data.file(statsfiles[i], x='Time', y=Vel+'/km', title=title, context=locals()))
-	    dd.append(graph.data.file(statsfiles[i], every=every, x='Time', y=Vel+'/km', title=None, context=locals()))
-	for Vel, title in [ 
-			     ('Vr_vol_i', r'$\left\langle v_r\right\rangle_\mathrm{ion}$'),
-			     ('Vr_vol_n', r'$\left\langle v_r\right\rangle_\mathrm{neut}$'), 
-			     ]:
-	    if i == 1 : title = None
-	    d.append(graph.data.file(vstatsfiles[i], x='Time', y=Vel+'/km', title=title, context=locals()))
-	    dd.append(graph.data.file(vstatsfiles[i], every=every, x='Time', y=Vel+'/km', title=None, context=locals()))
-	g.plot(d, [graph.style.line([colors[i]] + linestyles)])
+    for id, longid, yshift in [
+        ["i", "ion", 2], 
+        ["n", "neut", 1], 
+        ["m", "mol", 0], 
+        ]:
 
-	if i==0: g.plot(dd, [symbol])
+        g = graph.graphxy(width=figwidth, height=figwidth,
+                          x=graph.axis.linear(min=0, max=tmax, title='Time, 1000~yr'), 
+                          y=graph.axis.linear(min=-1, max=13,
+                                              title=r'Mean gas velocities, km~s$^{-1}$'),
+                          key=graph.key.key(pos='tr', textattrs=[trafo.scale(0.7)])
+                          )
+        for i in 0, 1:
+            d = []; dd = []
+            for Vel, title, thisfile in [ 
+                ['Vrms_vol_%s'% (id), 
+                 r'$\left\langle v^2\right\rangle_\mathrm{%s}^{1/2}$' % (longid),
+                 statsfiles[i]
+                 ],
+                ['Vr_vol_%s' % (id), 
+                 r'$\left\langle v_r\right\rangle_\mathrm{%s}$' % (longid),
+                 vstatsfiles[i]
+                 ],
+                ]:
+                if i == 1 : title = None
+                d.append(graph.data.file(thisfile, x='Time', y=Vel+'/km', title=title, context=locals()))
+                dd.append(graph.data.file(thisfile, every=every, x='Time', y=Vel+'/km', title=None, context=locals()))
 
-    # homogeneous solution
-    # 
-    # V = (3/8) c_i (1 + 7 c_i t / 4 R_0)**-3/7
-    f = graph.data.function(
-	"y(x) = (3./8.)*11.6*(1.0 + x/t0)**(-3./7.)",
-	context=locals(),
-	title=r'$\left\langle v_r\right\rangle_\mathrm{Str\ddot om}$')
-    g.plot(f, [graph.style.line([color.transparency(0.8), style.linewidth.THIck])])
+            g.plot(d, [graph.style.line([colors[i]] + linestyles)])
+            if i==0: g.plot(dd, [symbol])
 
-    g.writePDFfile('comparison3_vs_t_' + starid)
+        # homogeneous solution
+        # 
+        # V = (3/8) c_i (1 + 7 c_i t / 4 R_0)**-3/7
+        f = graph.data.function(
+            "y(x) = (3./8.)*11.6*(1.0 + x/t0)**(-3./7.)",
+            context=locals(),
+            title=r'$\left\langle v_r\right\rangle_\mathrm{Str\ddot om}$')
+        g.plot(f, [graph.style.line([color.transparency(0.8), style.linewidth.THIck])])
+        c.insert(g, [trafo.translate(0, yshift*(figheight+margin))])
+
+    c.writePDFfile('comparison3_vs_t_' + starid)
 
 
 

@@ -362,7 +362,7 @@ if varstring.startswith("n-B"):
 elif varstring.startswith("p"):
     g.plot(pyx.graph.data.function("y(x) = x"),
 	   [pyx.graph.style.line([pyx.style.linestyle.dashed] + mycolor)])
-    ang = 45.0			# assume square graph
+    ang = 45.0			# assume squareraph
     pp1 = p1var.min + 1.0
     x, y = g.pos(pp1, pp1)
     g.text(x+12*pyx.unit.x_pt, y, r"Equal pressures",

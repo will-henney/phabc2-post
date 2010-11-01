@@ -11,6 +11,8 @@ import scipy.stats as stats
 from PIL import Image
 import pyx
 
+printextra = 0
+
 class PlotVariable(object):
     """
     A variable that we might want to plot
