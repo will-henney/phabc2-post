@@ -6,3 +6,14 @@
 *.mod
 *.log
 
+/arch.mk
+/cubedenstats
+/cubestats
+/cubevstats
+/globcollate
+/makerotbmaps
+/TAGS
+/omp_test
+/phabrebin
+/rotatetest
+/turbstats

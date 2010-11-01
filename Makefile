@@ -34,7 +34,7 @@ cubeemiss.o:  wfitsutils.o emissmod.o em2levmod.o
 emissmod.o: em2levmod.o
 rotatetest.o: cuberotate.o wfitsutils.o
 makerotmap.o: cuberotate.o wfitsutils.o emissmod.o
-makerotbmaps.o: cuberotate.o wfitsutils.o
+makerotbmaps.o: cuberotate.o wfitsutils.o molfrac.o
 cubet.o:  wfitsutils.o
 enro2fits.o:  wfitsutils.o
 
@@ -77,7 +77,7 @@ rotatetest: rotatetest.o cuberotate.o wfitsutils.o
 	$(F90C) $(F90FLAGS) -o $@ $^ $(LFITS)
 makerotmap: makerotmap.o cuberotate.o wfitsutils.o emissmod.o em2levmod.o
 	$(F90C) $(F90FLAGS) -o $@ $^ $(LFITS)
-makerotbmaps: makerotbmaps.o cuberotate.o wfitsutils.o
+makerotbmaps: makerotbmaps.o cuberotate.o wfitsutils.o molfrac.o
 	$(F90C) $(F90FLAGS) -o $@ $^ $(LFITS)
 
 cubet: cubet.o wfitsutils.o
