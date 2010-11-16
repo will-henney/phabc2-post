@@ -81,12 +81,12 @@ bivar.Graph.figheight = 6
 bivar.PlotVariable.n = 50                               # size of pdf images
 
 dnvar = bivar.PlotVariable(numpy.log10(dn))
-dnvar.setminmaxn(min=0.0, max=6.2)
+dnvar.setminmaxn(min=1.2, max=4.8)
 dnvar.settitle(r'$\log n_\mathrm{gas}$', 'log n')
 
 
 vrvar = bivar.PlotVariable(vr, drawzero=1)          # radial velocity
-vrmin, vrmax = -20.0, 20.0
+vrmin, vrmax = -4.0, 4.0
 vrvar.setminmaxn(min=vrmin, max=vrmax)
 vrvar.settitle(r'Radial velocity, \(V_r\), km s\(^{-1}\)', 'V_r')
 
