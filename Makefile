@@ -44,7 +44,7 @@ turbstats.o:  wfitsutils.o turbstats_vars.o
 cubestats.o:  wfitsutils.o
 cubevstats.o:  wfitsutils.o
 cubetstats.o:  wfitsutils.o
-cubedenstats.o:  wfitsutils.o
+cubedenstats.o:  wfitsutils.o molfrac.o
 omp_test.o omp_test2.0 omp_test3.o omp_test4.o:  wfitsutils.o
 
 phabrebin.o: wfitsutils.o
@@ -58,7 +58,7 @@ cubevstats:   cubevstats.o   wfitsutils.o
 	$(F90C) $(F90FLAGS) -o $@ $^ $(LFITS)
 cubetstats:   cubetstats.o   wfitsutils.o
 	$(F90C) $(F90FLAGS) -o $@ $^ $(LFITS)
-cubedenstats: cubedenstats.o wfitsutils.o
+cubedenstats: cubedenstats.o wfitsutils.o molfrac.o
 	$(F90C) $(F90FLAGS) -o $@ $^ $(LFITS)
 
 
