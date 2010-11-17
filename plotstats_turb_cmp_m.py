@@ -11,14 +11,12 @@ margin = 0.5
 # This version puts the magnetic and non-magnetic on the same graph
 
 runtab = [
-    # [5.e48, 'Ostar', 't50m32dm0', 't50m32-zerob-e01'],
-    [5.e46, 'Bstar', ['Bstar-ep', 'Bstar-HDep'], [1370, 1450], 1500],
+    [5.e48, 'Ostar', ['Ostar-et', 'Ostar-HD'], 5, [400, 355], 5, 400],
+    [5.e46, 'Bstar', ['Bstar-ep', 'Bstar-HDep'], 10, [1370, 1450], 10, 1500],
     ]
 
 
 datadir = '.'
-istep = 10
-i1 = 10
 every = 10
 
 runids = [None, None]
@@ -27,7 +25,7 @@ transparency = color.transparency(0.3)
 symbol = graph.style.symbol(graph.style.symbol.square, 0.1, [deco.filled, colors[0], transparency])
 linestyles = [style.linewidth.Thick, transparency]
 
-for QH, starid, runids, i2s, tmax in runtab:
+for QH, starid, runids, i1, i2s, istep, tmax in runtab:
     print "Creating stats graph for %s star" % starid
     statsfiles = []
     vstatsfiles = []
@@ -104,7 +102,6 @@ for QH, starid, runids, i2s, tmax in runtab:
     ## Ion frac
     ##
     g = graph.graphxy(width=figwidth, height=figheight, 
-    # 		  x=graph.axis.linear(title='Time, 1000~yr'), 
 		      x=graph.axis.linear(min=0, max=tmax, painter=graph.axis.painter.linked()),
 		      y=graph.axis.logarithmic(min=1.e-6, max=1, title=r'Total ionized fraction'),
 		      key=graph.key.key(pos='tl', textattrs=[trafo.scale(0.7)])
@@ -112,8 +109,31 @@ for QH, starid, runids, i2s, tmax in runtab:
 
     for i in 0, 1:
 	d = []; dd = []
-	for Frac, title in [ ('Ifrac_v2', r'$X_\mathrm{vol}$'), 
-			     ('Ifrac_m', r'$X_\mathrm{mass}$') ]:
+	for Frac, title in [ ('Ifrac_v2', r'$X_\mathrm{ion,vol}$'), 
+			     ('Ifrac_m', r'$X_\mathrm{ion,mass}$') ]:
+	    if i == 1 : title = None
+	    d.append(graph.data.file(statsfiles[i], x='Time', y=Frac, title=title))
+	    dd.append(graph.data.file(statsfiles[i], every=every, x='Time', y=Frac, title=None))
+	    
+	g.plot(d, [graph.style.line([colors[i]] + linestyles)])
+	if i == 0: g.plot(dd, [symbol])
+    c.insert(g, [trafo.translate(0, 2*(figheight+margin))])
+
+
+    ##
+    ## Neutral frac
+    ##
+    g = graph.graphxy(width=figwidth, height=figheight, 
+		      x=graph.axis.linear(min=0, max=tmax, painter=graph.axis.painter.linked()),
+		      # y=graph.axis.logarithmic(min=1.e-6, max=1, title=r'Total neutral fraction'),
+		      y=graph.axis.linear(min=0, max=1, title=r'Total neutral fraction'),
+		      key=graph.key.key(pos='tl', textattrs=[trafo.scale(0.7)])
+		      )
+
+    for i in 0, 1:
+	d = []; dd = []
+	for Frac, title in [ ('Nfrac_v', r'$X_\mathrm{neut,vol}$'), 
+			     ('Nfrac_m', r'$X_\mathrm{neut,mass}$') ]:
 	    if i == 1 : title = None
 	    d.append(graph.data.file(statsfiles[i], x='Time', y=Frac, title=title))
 	    dd.append(graph.data.file(statsfiles[i], every=every, x='Time', y=Frac, title=None))
@@ -202,15 +222,21 @@ for QH, starid, runids, i2s, tmax in runtab:
 
     km = 1.e5
 
-    for id, longid, yshift in [
-        ["i", "ion", 2], 
-        ["n", "neut", 1], 
-        ["m", "mol", 0], 
+    yshift = 0
+    for id, longid, vmin, vmax in [
+        ["m", "mol", -2, 5], 
+        ["n", "neut", -1, 6], 
+        ["i", "ion", -1, 13], 
         ]:
+        figheight = figwidth*(vmax - vmin)/14.0
+        if yshift == 0:
+            xpainter = graph.axis.painter.regular()
+        else:
+            xpainter = graph.axis.painter.linked()
 
-        g = graph.graphxy(width=figwidth, height=figwidth,
-                          x=graph.axis.linear(min=0, max=tmax, title='Time, 1000~yr'), 
-                          y=graph.axis.linear(min=-1, max=13,
+        g = graph.graphxy(width=figwidth, height=figheight,
+                          x=graph.axis.linear(min=0, max=tmax, title='Time, 1000~yr', painter=xpainter), 
+                          y=graph.axis.linear(min=vmin, max=vmax,
                                               title=r'Mean gas velocities, km~s$^{-1}$'),
                           key=graph.key.key(pos='tr', textattrs=[trafo.scale(0.7)])
                           )
@@ -233,15 +259,20 @@ for QH, starid, runids, i2s, tmax in runtab:
             g.plot(d, [graph.style.line([colors[i]] + linestyles)])
             if i==0: g.plot(dd, [symbol])
 
-        # homogeneous solution
-        # 
-        # V = (3/8) c_i (1 + 7 c_i t / 4 R_0)**-3/7
-        f = graph.data.function(
-            "y(x) = (3./8.)*11.6*(1.0 + x/t0)**(-3./7.)",
-            context=locals(),
-            title=r'$\left\langle v_r\right\rangle_\mathrm{Str\ddot om}$')
-        g.plot(f, [graph.style.line([color.transparency(0.8), style.linewidth.THIck])])
-        c.insert(g, [trafo.translate(0, yshift*(figheight+margin))])
+        if longid == "ion":
+            # homogeneous solution
+            # 
+            # V = (3/8) c_i (1 + 7 c_i t / 4 R_0)**-3/7
+            f = graph.data.function(
+                "y(x) = (3./8.)*11.6*(1.0 + x/t0)**(-3./7.)",
+                context=locals(),
+                title=r'$\left\langle v_r\right\rangle_\mathrm{Str\ddot om}$')
+            g.plot(f, [graph.style.line([color.transparency(0.8), style.linewidth.THIck])])
+
+        # insert zero line
+        g.stroke(g.ygridpath(0), [style.linewidth.thin])
+        c.insert(g, [trafo.translate(0, yshift)])
+        yshift += figheight+margin
 
     c.writePDFfile('comparison3_vs_t_' + starid)
 

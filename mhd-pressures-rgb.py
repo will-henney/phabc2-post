@@ -304,7 +304,7 @@ elif varstring.startswith("pram-pmag"):
     p2var.setminmaxn(min=pmin, max=pmax, n=npix)
     p2var.settitle(r'$\log P_\mathrm{mag}/k$', 'log P_mag / k')
 
-    g = Graph(p1var, p2var, weights=weights, gamma=1.0, statslevel=0)
+    g = Graph(p1var, p2var, weights=weights, gamma=3.0, statslevel=1)
 
 elif varstring.startswith("n-B"):
     dnvar = PlotVariable(N.log10(dn))
@@ -320,7 +320,7 @@ elif varstring.startswith("n-B"):
 	bbvar.setmask(abs(bb - bb[0,0,0]) > 0.01*bb[0,0,0])
 	dnvar.setmask(abs(dn - dn[0,0,0]) > 0.01*dn[0,0,0])
 
-    g = Graph(dnvar, bbvar, weights=weights, gamma=2.0, statslevel=1)
+    g = Graph(dnvar, bbvar, weights=weights, gamma=3.0, statslevel=1)
 
 
 # V_a = B/sqrt(4 pi rho)

@@ -1,5 +1,5 @@
 """
-RGB plots of radial velocity distributions as a function of radius
+RGB plots of radial velocity distributions as a function of density
 
 Color represents ion/molecular state. 
 
@@ -11,6 +11,7 @@ velocities
 import bivar                            # my bivariate distribution plotting library
 
 import os, sys, argparse
+import pyfits
 
 execname = os.path.split(sys.argv[0])[-1]
 
@@ -34,7 +35,6 @@ if args.timestep is None:
 print args
 
 def load_fits(id):
-    import pyfits
     return pyfits.open('%s-%s%4.4i.fits' % (args.runid, id, args.itime))['PRIMARY'].data
 
 # Load in the required data cubes
