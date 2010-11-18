@@ -28,13 +28,13 @@ contains
   elemental function molfrac_sp(AV) result (molfrac)
     real :: molfrac
     real, intent(in) :: AV
-    molfrac = 1.0 - 1.0/(1.0 + exp(mol_sharpness*(AV-mol_AV0)))
+    molfrac = 1.0/(1.0 + exp(-mol_sharpness*(AV-mol_AV0)))
   end function molfrac_sp
 
   elemental function molfrac_dp(AV) result (molfrac)
     real(dp) :: molfrac
     real(dp), intent(in) :: AV
-    molfrac = 1.0_dp - 1.0_dp/(1.0_dp + exp(real(mol_sharpness,dp)*(AV-real(mol_AV0,dp))))
+    molfrac = 1.0_dp/(1.0_dp + exp(-real(mol_sharpness,dp)*(AV-real(mol_AV0,dp))))
   end function molfrac_dp
 
 end module mod_molfrac
