@@ -1,4 +1,24 @@
-include arch.mk
+################################################################
+# Attempt at a new bullet-proof architecture for makefile over
+# multiple architectures (WJH 28 Oct 2010 - ported here 17 Nov 2010)
+
+# First, sane defaults to fall back on if arch.mk and local.mk are missing
+F90=gfortran
+F90FLAGS=-O3
+LFITS=-lcfitsio
+
+
+# Read architecture-specific file arch.mk only if it exists. This
+# should be a link to a file in the arch-mk/ directory. Architecture
+# is meant in the broadest sense, including compiler, OS, processor,
+# etc. The files in arch-mk/ can be under VC, but the link arch.mk
+# should *not* be under VC
+-include arch.mk
+
+# If local.mk exists, then read it too. This is the place to put
+# temporary changes, such as adding debug flags. It should *not* be
+# under VC
+-include local.mk
 
 EXECS=cubeextras cubet enro2fits cubeemiss makerotmap makerotbmaps globstats
 
