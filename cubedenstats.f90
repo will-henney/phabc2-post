@@ -79,6 +79,8 @@ program cubedenstats
      dmean_tot = sum(d)/real(nx*ny*nz, dp)
      d2mean_tot = sum(d*d)/real(nx*ny*nz, dp)
 
+     d = d / dmean_tot          ! rescale density to prevent overflow
+
      ! version 2: weight by the ion fraction
      dmean_m = sum(d*wm)/sum(wm)
      dmean_n = sum(d*wn)/sum(wn)
@@ -91,6 +93,15 @@ program cubedenstats
 
      ! mean of density-cubed - only for ionized gas
      d3mean_i = sum(d*d*d*wi, mask=m)/sum(wi, mask=m)
+
+     ! put scaling back in
+     dmean_m = dmean_m * dmean_tot
+     dmean_n = dmean_n * dmean_tot
+     dmean_i = dmean_i * dmean_tot
+     d2mean_m = d2mean_m * dmean_tot * dmean_tot
+     d2mean_n = d2mean_n * dmean_tot * dmean_tot
+     d2mean_i = d2mean_i * dmean_tot * dmean_tot
+     d3mean_i = d3mean_i * dmean_tot * dmean_tot * dmean_tot
 
      if (mod(it,10)==0) print *, 'Done timestep: ', it
 
