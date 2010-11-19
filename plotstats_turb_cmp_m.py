@@ -19,11 +19,13 @@ runtab = [
 datadir = '.'
 every = 10
 
-runids = [None, None]
-colors = [color.rgb(0.6,0.3,0.0), color.rgb(0.0,0.3,0.6)]
 transparency = color.transparency(0.3)
-symbol = graph.style.symbol(graph.style.symbol.square, 0.1, [deco.filled, colors[0], transparency])
-linestyles = [style.linewidth.Thick, transparency]
+symbol = graph.style.symbol(graph.style.symbol.square, 0.1, [deco.filled, transparency])
+
+linestyles_HD = [style.linewidth.normal, transparency]
+linestyles_MHD = [style.linewidth.normal, transparency]
+linestyles = [linestyles_HD, linestyles_MHD]
+keyscale = trafo.scale(0.9)
 
 for QH, starid, runids, i1, i2s, istep, tmax in runtab:
     print "Creating stats graph for %s star" % starid
@@ -39,7 +41,7 @@ for QH, starid, runids, i1, i2s, istep, tmax in runtab:
 	dstatsfiles.append('%s/%s-%4.4i-%4.4i-%4.4i.dstats' % (datadir, runid, i1, i2, istep)) 
 
 
-    ## Graph 1 : density, clumping
+    ## Graph 1 : densities
 
     c = canvas.canvas()
 
@@ -47,46 +49,22 @@ for QH, starid, runids, i1, i2s, istep, tmax in runtab:
     ## Mean density
     ##
     g = graph.graphxy(width=figwidth, height=figheight, 
-		      x=graph.axis.linear(min=0, max=tmax, painter=graph.axis.painter.linked()),
+		      x=graph.axis.linear(min=0, max=tmax, title='Time, 1000~yr'), 
 		      y=graph.axis.logarithmic(min=5, max=5.e5,
 					  title=r'Mean densities, cm$^{-3}$'),
-		      key=graph.key.key(pos='tr', textattrs=[trafo.scale(0.7)])
+		      key=graph.key.key(pos='tr', textattrs=[keyscale])
 		      )
     for i in 0, 1:
 	d = []; dd = [] 
 	for Dmean, title in [ 
-	    ('Dmean_i', r'$\langle n\rangle_\mathrm{ion}$'),
-	    ('Dmean_n', r'$\langle n\rangle_\mathrm{neut}$'), 
-	    ('Dmean_tot', r'$\langle n\rangle_\mathrm{tot}$'), 
+	    ('Dmean_i', r'Ionized'),
+	    ('Dmean_n', r'Neutral'), 
+	    ('Dmean_m', r'Molecular'), 
 	    ]:
 	    if i == 1 : title = None
 	    d.append(graph.data.file(dstatsfiles[i], x='Time', y=Dmean, title=title))
 	    dd.append(graph.data.file(dstatsfiles[i], x='Time', y=Dmean, title=None, every=every))
-	g.plot(d, [graph.style.line([colors[i]] + linestyles)])
-	if i==0: g.plot(dd, [symbol])
-
-    c.insert(g, [trafo.translate(0, figheight+margin)])
-
-    ##
-    ## Clumping 
-    ##
-    g = graph.graphxy(width=figwidth, height=figheight, 
-		      x=graph.axis.linear(min=0, max=tmax, title='Time, 1000~yr'), 
-		      y=graph.axis.logarithmic(title=r'Degree of clumping',
-					       min=0.9, max=450
-					       ),
-		      key=graph.key.key(pos='tr', textattrs=[trafo.scale(0.7)])
-		      )
-    for i in 0, 1:
-	d = []; dd = []
-	for Clump, title in [ 
-			      ('D2mean_i/Dmean_i**2', r'$C_\mathrm{ion}$'),
-			      ('D2mean_n/Dmean_n**2', r'$C_\mathrm{neut}$'), 
-			      ('D3mean_i**2/D2mean_i**3', r'$\varepsilon_\mathrm{ion}^{-1}$')]:
-	    if i == 1 : title = None
-	    d.append(graph.data.file(dstatsfiles[i], x='Time', y=Clump, title=title))
-	    dd.append(graph.data.file(dstatsfiles[i], every=every, x='Time', y=Clump, title=None))
-	g.plot(d, [graph.style.line([colors[i]] + linestyles)])
+	g.plot(d, [graph.style.line(linestyles[i])])
 	if i==0: g.plot(dd, [symbol])
 
     c.insert(g)
@@ -103,19 +81,19 @@ for QH, starid, runids, i1, i2s, istep, tmax in runtab:
     ##
     g = graph.graphxy(width=figwidth, height=figheight, 
 		      x=graph.axis.linear(min=0, max=tmax, painter=graph.axis.painter.linked()),
-		      y=graph.axis.logarithmic(min=1.e-6, max=1, title=r'Total ionized fraction'),
-		      key=graph.key.key(pos='tl', textattrs=[trafo.scale(0.7)])
+		      y=graph.axis.logarithmic(min=1.e-6, max=1, title=r'Ionized fraction'),
+		      key=graph.key.key(pos='br', textattrs=[keyscale])
 		      )
 
     for i in 0, 1:
 	d = []; dd = []
-	for Frac, title in [ ('Ifrac_v2', r'$X_\mathrm{ion,vol}$'), 
-			     ('Ifrac_m', r'$X_\mathrm{ion,mass}$') ]:
+	for Frac, title in [ ('Ifrac_v2', r'Volume'), 
+			     ('Ifrac_m', r'Mass') ]:
 	    if i == 1 : title = None
 	    d.append(graph.data.file(statsfiles[i], x='Time', y=Frac, title=title))
 	    dd.append(graph.data.file(statsfiles[i], every=every, x='Time', y=Frac, title=None))
 	    
-	g.plot(d, [graph.style.line([colors[i]] + linestyles)])
+	g.plot(d, [graph.style.line(linestyles[i])])
 	if i == 0: g.plot(dd, [symbol])
     c.insert(g, [trafo.translate(0, 2*(figheight+margin))])
 
@@ -125,34 +103,58 @@ for QH, starid, runids, i1, i2s, istep, tmax in runtab:
     ##
     g = graph.graphxy(width=figwidth, height=figheight, 
 		      x=graph.axis.linear(min=0, max=tmax, painter=graph.axis.painter.linked()),
-		      # y=graph.axis.logarithmic(min=1.e-6, max=1, title=r'Total neutral fraction'),
-		      y=graph.axis.linear(min=0, max=1, title=r'Total neutral fraction'),
-		      key=graph.key.key(pos='tl', textattrs=[trafo.scale(0.7)])
+		      y=graph.axis.linear(min=0, max=1, title=r'Neutral fraction'),
+		      key=graph.key.key(pos='tr', textattrs=[keyscale])
 		      )
 
     for i in 0, 1:
 	d = []; dd = []
-	for Frac, title in [ ('Nfrac_v', r'$X_\mathrm{neut,vol}$'), 
-			     ('Nfrac_m', r'$X_\mathrm{neut,mass}$') ]:
+	for Frac, title in [ ('Nfrac_v', r'Volume'), 
+			     ('Nfrac_m', r'Mass') ]:
 	    if i == 1 : title = None
 	    d.append(graph.data.file(statsfiles[i], x='Time', y=Frac, title=title))
 	    dd.append(graph.data.file(statsfiles[i], every=every, x='Time', y=Frac, title=None))
 	    
-	g.plot(d, [graph.style.line([colors[i]] + linestyles)])
+	g.plot(d, [graph.style.line(linestyles[i])])
 	if i == 0: g.plot(dd, [symbol])
     c.insert(g, [trafo.translate(0, figheight+margin)])
 
+    ##
+    ## Molecular frac
+    ##
+    g = graph.graphxy(width=figwidth, height=figheight, 
+		      x=graph.axis.linear(min=0, max=tmax, title='Time, 1000~yr'),
+		      y=graph.axis.linear(min=0, max=1, title=r'Molecular fraction'),
+		      key=graph.key.key(pos='tr', textattrs=[keyscale])
+		      )
+
+    for i in 0, 1:
+	d = []; dd = []
+	for Frac, title in [ ('Mfrac_v', r'Volume'), 
+			     ('Mfrac_m', r'Mass') ]:
+	    if i == 1 : title = None
+	    d.append(graph.data.file(statsfiles[i], x='Time', y=Frac, title=title))
+	    dd.append(graph.data.file(statsfiles[i], every=every, x='Time', y=Frac, title=None))
+	    
+	g.plot(d, [graph.style.line(linestyles[i])])
+	if i == 0: g.plot(dd, [symbol])
+    c.insert(g)
+
+    c.writePDFfile('comparison2_vs_t_' + starid)
 
     ##
 
+    ## Graph 2b : radius
+
+    c = canvas.canvas()
     ##
     ## Radius
     ##
     g = graph.graphxy(width=figwidth, height=figheight, 
 		      x=graph.axis.linear(min=0, max=tmax, title='Time, 1000~yr'), 
-		      y=graph.axis.linear(min=0, max=4,
-					  title=r'Mean radius, parsec'),
-		      key=graph.key.key(pos='tl', textattrs=[trafo.scale(0.7)],
+		      y=graph.axis.linear(min=0, max=2.5,
+					  title=r'Radius, parsec'),
+		      key=graph.key.key(pos='tl', textattrs=[keyscale],
 					hdist=0.3*unit.v_cm)
 		      )
 	       
@@ -177,7 +179,7 @@ for QH, starid, runids, i1, i2s, istep, tmax in runtab:
 	dd.append(graph.data.file(rstatsfiles[i], x='Time', y='rif_max*4.0/256', 
 				 title=None, every=every
 				 ))
-	g.plot(d, [graph.style.line([colors[i]] + linestyles)])
+	g.plot(d, [graph.style.line(linestyles[i])])
 	if i == 0: g.plot(dd, [symbol])
 
     # homogeneous solution
@@ -202,17 +204,17 @@ for QH, starid, runids, i1, i2s, istep, tmax in runtab:
     f = graph.data.function(
 	"y(x) = R0*(1.0 + x/t0)**(4./7.)", 
 	context=locals(),
-	title=r"$R_\mathrm{Str\ddot om}$"
+	title=r"$R_\mathrm{Spitzer}$"
     )
 #     f = graph.data.function(
 # 	"y(x) = 0.532*(1.0 + 0.0390*x)**(4./7.)", 
-# 	title=r"$R_\mathrm{Str\ddot om}$"
+# 	title=r"$R_\mathrm{Spitzer}$"
 #     )
     g.plot(f, [graph.style.line([color.transparency(0.8), style.linewidth.THIck])])
 
     c.insert(g)
 
-    c.writePDFfile('comparison2_vs_t_' + starid)
+    c.writePDFfile('comparison2b_vs_t_' + starid)
 
     ##
     ## RMS and mean radial velocities
@@ -223,22 +225,22 @@ for QH, starid, runids, i1, i2s, istep, tmax in runtab:
     km = 1.e5
 
     yshift = 0
-    for id, longid, vmin, vmax in [
-        ["m", "mol", -2, 5], 
-        ["n", "neut", -1, 6], 
-        ["i", "ion", -1, 13], 
+    for id, longid, vmin, vmax, pos in [
+        ["m", "mol", -2, 5, {'Bstar': 'tl', 'Ostar': 'tl'}], 
+        ["n", "neut", -1, 6, {'Bstar': 'tl', 'Ostar': 'mr'}], 
+        ["i", "ion", -1, 13, {'Bstar': 'tr', 'Ostar': 'tr'}], 
         ]:
-        figheight = figwidth*(vmax - vmin)/14.0
+        thisfigheight = figwidth*(vmax - vmin)/14.0
         if yshift == 0:
             xpainter = graph.axis.painter.regular()
         else:
             xpainter = graph.axis.painter.linked()
 
-        g = graph.graphxy(width=figwidth, height=figheight,
+        g = graph.graphxy(width=figwidth, height=thisfigheight,
                           x=graph.axis.linear(min=0, max=tmax, title='Time, 1000~yr', painter=xpainter), 
                           y=graph.axis.linear(min=vmin, max=vmax,
                                               title=r'Mean gas velocities, km~s$^{-1}$'),
-                          key=graph.key.key(pos='tr', textattrs=[trafo.scale(0.7)])
+                          key=graph.key.key(pos=pos[starid], textattrs=[keyscale])
                           )
         for i in 0, 1:
             d = []; dd = []
@@ -256,7 +258,7 @@ for QH, starid, runids, i1, i2s, istep, tmax in runtab:
                 d.append(graph.data.file(thisfile, x='Time', y=Vel+'/km', title=title, context=locals()))
                 dd.append(graph.data.file(thisfile, every=every, x='Time', y=Vel+'/km', title=None, context=locals()))
 
-            g.plot(d, [graph.style.line([colors[i]] + linestyles)])
+            g.plot(d, [graph.style.line(linestyles[i])])
             if i==0: g.plot(dd, [symbol])
 
         if longid == "ion":
@@ -266,13 +268,13 @@ for QH, starid, runids, i1, i2s, istep, tmax in runtab:
             f = graph.data.function(
                 "y(x) = (3./8.)*11.6*(1.0 + x/t0)**(-3./7.)",
                 context=locals(),
-                title=r'$\left\langle v_r\right\rangle_\mathrm{Str\ddot om}$')
+                title=r'$\left\langle v_r\right\rangle_\mathrm{Spitzer}$')
             g.plot(f, [graph.style.line([color.transparency(0.8), style.linewidth.THIck])])
 
         # insert zero line
         g.stroke(g.ygridpath(0), [style.linewidth.thin])
         c.insert(g, [trafo.translate(0, yshift)])
-        yshift += figheight+margin
+        yshift += thisfigheight+margin
 
     c.writePDFfile('comparison3_vs_t_' + starid)
 
