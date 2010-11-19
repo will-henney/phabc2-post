@@ -2,6 +2,7 @@ from pyx import *
 from math import pi
 
 text.set(mode='latex')
+text.preamble(r"\usepackage[varg]{txfonts}")
 unit.set(wscale=1.5, xscale=1.2)
 figwidth = 10
 figheight = figwidth/1.618
@@ -9,14 +10,15 @@ margin = 0.5
 
 
 runtab = [
-    ['95krum256', 1, 200, 20],
-    ['95krumx256', 1, 600, 40],
+    ['B30krum-256', 10, 240, 20],
+    ['B30krumx-256', 10, 690, 40],
     ]
 
-skiphead = [0, 100]
+skiphead = [0, 19]
+skiptail = [3, 0]
 
 datadir = '.'
-istep = 1
+istep = 10
 tmax = 6			# in Myr
 
 statsfile = [] 
@@ -46,14 +48,17 @@ d = []
 for i in 0, 1:
     boxsize = boxsizes[i]
     d.append(graph.data.file(rstatsfile[i], x='Time/100', y='(boxsize/4.0)*rx2/3.085677582e18', context=locals(),
-			     skiphead=skiphead[i], title=[r"$\left\langle R_\mathrm{ion}\right\rangle$", None][i]
+			     skiphead=skiphead[i], skiptail=skiptail[i], title=[r"$\left\langle R_\mathrm{ion}\right\rangle$", None][i]
 			     ))
     d.append(graph.data.file(rstatsfile[i], x='Time/100', y='rif_min*boxsize/256', context=locals(), 
-			     skiphead=skiphead[i], title=[r"$R_\mathrm{min}$", None][i]
+			     skiphead=skiphead[i], skiptail=skiptail[i], title=[r"$R_\mathrm{min}$", None][i]
 			     ))
     d.append(graph.data.file(rstatsfile[i], x='Time/100', y='rif_max*boxsize/256', context=locals(), 
-			     skiphead=skiphead[i], title=[r"$R_\mathrm{max}$", None][i]
+			     skiphead=skiphead[i], skiptail=skiptail[i], title=[r"$R_\mathrm{max}$", None][i]
 			     ))
+    # d.append(graph.data.file(rstatsfile[i], x='Time/100', y='(boxsize/4.0)*rpdr/3.085677582e18', context=locals(), 
+    #     		     skiphead=skiphead[i], skiptail=skiptail[i], title=[r"$R_\mathrm{PDR}$", None][i]
+    #     		     ))
 # d.append(graph.data.file(rstatsfile, x='Time/100', y='rmean_mass_i/3.086e18',
 # 			 title=r"$\left\langle R\right\rangle_\mathrm{ion}$"
 # 			 ))
@@ -61,7 +66,7 @@ for i in 0, 1:
 g = graph.graphxy(width=figwidth, height=figheight, 
 		  x=graph.axis.log(min=0.05, max=tmax, title='Time, Myr'), 
 		  y=graph.axis.log(min=0.5, max=20,
-				      title=r'Mean radius, parsec'),
+				      title=r'Radius, parsec'),
 		  key=graph.key.key(pos='tl', textattrs=[trafo.scale(0.7)],
 				    hdist=0.3*unit.v_cm)
 		  )
@@ -108,14 +113,24 @@ print "R0 = %.2f pc, t0 = %.2f Myr" % (R0, t0)
 f = graph.data.function(
     "y(x) = R0*(1.0 + x/t0)**(4./7.)", 
     context=locals(),
-    title=r"$R_\mathrm{Str\ddot om}$"
+    title=r"$R_\mathrm{Spitzer}$"
 )
 g.plot(f, [graph.style.line([color.gray(0.8), style.linewidth.THIck])])
 # plot the simulation lines last since they are thinner
+twolines = attr.changelist([
+	style.linestyle.solid, 
+	style.linestyle.dashed, 
+	])
 threelines = attr.changelist([
 	style.linestyle.solid, 
 	style.linestyle.dashed, 
 	style.linestyle.dotted, 
+	])
+fourlines = attr.changelist([
+	style.linestyle.solid, 
+	style.linestyle.dashed, 
+	style.linestyle.dotted, 
+	style.linestyle.dashdotted, 
 	])
 g.plot(d, [graph.style.line([threelines])])
 
@@ -139,20 +154,20 @@ for i in 0, 1:
 # 			  r'$\left\langle v^2\right\rangle_\mathrm{neut}^{1/2}$'), 
 			 ]:
 	d.append(graph.data.file(statsfile[i], x='Time/100', y=Vel+'/km', 
-				 skiphead=skiphead[i], title=[title, None][i], context=locals()))
+				 skiphead=skiphead[i], skiptail=skiptail[i], title=[title, None][i], context=locals()))
 
     for Vel, title in [ 
 			 ('Vr_vol_i', r'$\left\langle v_r\right\rangle_\mathrm{ion}$'),
-# 			 ('Vr_vol_n', r'$\left\langle v_r\right\rangle_\mathrm{neut}$'), 
+ 			 ('Vr_em_if', r'$\left\langle v_r\right\rangle_\mathrm{front}$'), 
 			 ]:
 	if i==1: title==None
 	d.append(graph.data.file(vstatsfile[i], x='Time/100', y=Vel+'/km', 
-				 skiphead=skiphead[i], title=[title, None][i], context=locals()))
+				 skiphead=skiphead[i], skiptail=skiptail[i], title=[title, None][i], context=locals()))
 
 
 g = graph.graphxy(width=figwidth, height=figheight,
 		  x=graph.axis.linear(min=0, max=tmax, title='Time, Myr'), 
-		  y=graph.axis.linear(min=0, max=3.0,
+		  y=graph.axis.linear(min=0, max=3.5,
 				      title=r'Mean gas velocities, km~s$^{-1}$'),
 		  key=graph.key.key(pos='tr', textattrs=[trafo.scale(0.7)])
 		  )
@@ -163,14 +178,10 @@ g = graph.graphxy(width=figwidth, height=figheight,
 f = graph.data.function(
     "y(x) = (3./8.)*11.6*(1.0 + x/t0)**(-3./7.)",
     context=locals(),
-    title=r'$\left\langle v_r\right\rangle_\mathrm{Str\ddot om}$')
+    title=r'$\left\langle v_r\right\rangle_\mathrm{Spitzer}$')
 g.plot(f, [graph.style.line([color.gray(0.8), style.linewidth.THIck])])
 
-twolines = attr.changelist([
-	style.linestyle.solid, 
-	style.linestyle.dashed, 
-	])
-g.plot(d, [graph.style.line([twolines])])
+g.plot(d, [graph.style.line([threelines])])
 
 
 g.writePDFfile('velocities_vs_t_' + 'krum')
