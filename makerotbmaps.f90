@@ -17,7 +17,7 @@ program makerotbmaps
   character(len=4) :: ctime
   character(len=13) :: rotid
   real ::  zsize, dzz
-  character(len=1), dimension(3) :: axid = (/ 'x', 'y', 'z' /)
+  character(len=1), dimension(5) :: axid = (/ 'x', 'y', 'z', 'U', 'V' /)
 
   ! options are nearest/linear
   interpolation = interpolation_linear
@@ -98,23 +98,29 @@ program makerotbmaps
   bmapi(1, :, :) = sum(dd*xxi*bbxx, dim=3)
   bmapi(2, :, :) = sum(dd*xxi*bbyy, dim=3)
   bmapi(3, :, :) = sum(dd*xxi*bbzz, dim=3)
+  bmapi(4, :, :) = sum(dd*xxi*abs(bbxx), dim=3)
+  bmapi(5, :, :) = sum(dd*xxi*abs(bbyy), dim=3)
 
   ! B field weighted by neutral column
   bmapn(1, :, :) = sum(dd*(1.-xxi)*(1.-mm)*bbxx, dim=3)
   bmapn(2, :, :) = sum(dd*(1.-xxi)*(1.-mm)*bbyy, dim=3)
   bmapn(3, :, :) = sum(dd*(1.-xxi)*(1.-mm)*bbzz, dim=3)
+  bmapn(4, :, :) = sum(dd*(1.-xxi)*(1.-mm)*abs(bbxx), dim=3)
+  bmapn(5, :, :) = sum(dd*(1.-xxi)*(1.-mm)*abs(bbyy), dim=3)
 
   ! B field weighted by molecular column
   bmapm(1, :, :) = sum(dd*(1.-xxi)*mm*bbxx, dim=3)
   bmapm(2, :, :) = sum(dd*(1.-xxi)*mm*bbyy, dim=3)
   bmapm(3, :, :) = sum(dd*(1.-xxi)*mm*bbzz, dim=3)
+  bmapm(4, :, :) = sum(dd*(1.-xxi)*mm*abs(bbxx), dim=3)
+  bmapm(5, :, :) = sum(dd*(1.-xxi)*mm*abs(bbyy), dim=3)
 
   ! ... and the columns themselves
   coli(:, :) = sum(dd*xxi, dim=3)
   coln(:, :) = sum(dd*(1.-xxi)*(1.-mm), dim=3)
   colm(:, :) = sum(dd*(1.-xxi)*mm, dim=3)
 
-  do i = 1, 3
+  do i = 1, 5
      call fitswrite(bmapi(i, :, :), &
           & trim(prefix)//'-bmap-i-'//axid(i)//rotid//ctime//'.fits')
      call fitswrite(bmapn(i, :, :), &

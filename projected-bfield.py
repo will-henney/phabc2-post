@@ -1,5 +1,6 @@
 from __future__ import division
 import os, sys, argparse
+import pyfits
 # Parse command line arguments
 parser = argparse.ArgumentParser(description="""
 Graph the projected B field from a certan viewing angle, as calculated by makerotbmaps
@@ -24,7 +25,6 @@ args = parser.parse_args()              # we can now use args.runid, args.itime
 import numpy as N
 
 def load_fits(id):
-    import pyfits
     return pyfits.open('%s-bmap-%s-rot%+3.3i%+3.3i-%4.4i.fits' 
                        % (args.runid, id, args.theta, args.phi, args.itime))['PRIMARY'].data
 
@@ -48,7 +48,13 @@ graymap = pyxgraph.ColMapper.ColorMapper("pm3d", exponent=1.0, invert=0, pm3d=[7
 # mycolmap = pyxgraph.ColMapper.ColorMapper("white-yellow-red-black", exponent=0.6, brightness=0.4)
 mycolmap = graymap
 
-bi_scale, bn_scale, bm_scale = 0.09, 8.0, 12.0
+if args.runid.startswith("Ostar"):
+    bi_scale, bn_scale, bm_scale = 0.09, 8.0, 12.0
+elif args.runid.startswith("Bstar"):
+    bi_scale, bn_scale, bm_scale = 0.004, 4.0, 3.0
+else: 
+    raise NotImplementedError, "Only Ostar and Bstar allowed so far"
+
 worldwidth, worldheight = args.boxsize, args.boxsize
 
 ## functions needed for vector plots
@@ -61,7 +67,7 @@ import random
 # allow skip do be non-integer
 x = lambda k: random.randint(int(skip)//4,int(3*skip)//4) + (int(k*skip)//my)
 y = lambda k: random.randint(int(skip)//4,int(3*skip)//4) + int(skip*(int(k)%my)) - 1
-arrow_adjust = 2.0
+arrow_adjust = 1.5
 def s(k):
     jj = min(y(k),ny-1)
     ii = min(x(k),nx-1)
@@ -127,7 +133,11 @@ from PIL import Image
 colm, coln, coli = ['%s-colmap-%s-rot%+3.3i%+3.3i-%4.4i.fits' 
                        % (args.runid, mni, args.theta, args.phi, args.itime)
                     for mni in "mni"]
-maxcolm, maxcoln, maxcoli = [8.e5, 6.e5, 4.e4] # these are funny units - should multiply by cell size
+if args.runid.startswith("Ostar"):
+    maxcolm, maxcoln, maxcoli = [8.e5, 6.e5, 4.e4] # these are funny units - should multiply by cell size
+elif args.runid.startswith("Bstar"):
+    maxcolm, maxcoln, maxcoli = [8.e5, 6.e5, 8.e3]
+
 rgbim = RGB3Image(
     redfile=colm, greenfile=coln, bluefile=coli, 
     redmin = 0.0, greenmin = 0.0, bluemin = 0.0,

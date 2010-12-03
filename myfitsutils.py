@@ -55,10 +55,10 @@ class FitsData:
 	    # note that fitsdata array has y as the first dimension
 	    fitsfulldata = pyfits.open(fitsfile)[0].data
         # crop bounding box on top-right
-	if self.bb[3] and self.bb[3] < numarray.shape(fitsfulldata)[0]:
-	    self.bb[3] = numarray.shape(fitsfulldata)[0]
-	if self.bb[2] and self.bb[2] < numarray.shape(fitsfulldata)[1]:
-	    self.bb[2] = numarray.shape(fitsfulldata)[1]
+	# if self.bb[3] and self.bb[3] < numarray.shape(fitsfulldata)[0]:
+	#     self.bb[3] = numarray.shape(fitsfulldata)[0]
+	# if self.bb[2] and self.bb[2] < numarray.shape(fitsfulldata)[1]:
+	#     self.bb[2] = numarray.shape(fitsfulldata)[1]
         self.fitsdata = fitsfulldata[self.bb[1]:self.bb[3],self.bb[0]:self.bb[2]]
         self.shape = numarray.shape(self.fitsdata)
         self.size = (self.shape[1],self.shape[0])
