@@ -5,6 +5,9 @@
 *.dat
 *.mod
 *.log
+*.dvi
+pyx-arrow-test.tex
+pyx-arrow-test.html
 
 /arch.mk
 /cubedenstats

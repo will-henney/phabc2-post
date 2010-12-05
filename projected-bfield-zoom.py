@@ -1,6 +1,7 @@
 from __future__ import division
 import os, sys, argparse
 import pyfits
+import pyxgraph, pyx
 # Parse command line arguments
 parser = argparse.ArgumentParser(description="""
 Graph the projected B field from a certan viewing angle, as calculated by makerotbmaps
@@ -39,12 +40,25 @@ def load_fits(id):
                        % (args.runid, id, args.theta, args.phi, args.itime))['PRIMARY'].data
 
 # Load in the required B-component maps
+vectorstyles = [
+    pyx.color.rgb.red,
+    pyx.color.transparency(0.5),
+    pyx.style.linewidth.thick,
+    ]
+arrowattrs = vectorstyles
 if args.arrows:
     # int B_i n dz  for i = x, y, z
     XYZ = "xyz"
+    arrowsize = 0.15
+    linelength = 0.25*pyx.unit.v_cm
+    arrows_id = "-vec"
 else:
     # int |B_i| n dz  for i = x, y; int B_z n dz
     XYZ = "UVz"
+    arrowsize = None
+    linelength = 0.5*pyx.unit.v_cm
+    arrows_id = "-abs"
+    
 
 bxi, byi, bzi = [load_fits("i-%s" % (xyz)) for xyz in XYZ] # ionized
 bxn, byn, bzn = [load_fits("n-%s" % (xyz)) for xyz in XYZ] # neutral
@@ -59,7 +73,6 @@ colm, coln, coli = ['%s-colmap-%s-rot%+3.3i%+3.3i-%4.4i.fits'
 mcol = pyfits.open(colm)["PRIMARY"].data
 
 # Do the graph
-import pyxgraph, pyx
 pyx.text.set(mode="latex")
 pyx.text.preamble(r"\usepackage{txfonts,color}\AtBeginDocument{\bfseries\boldmath}")
 figwidth, figheight, margin = 10, 10, 0.0
@@ -101,19 +114,25 @@ bym = bym[j1:j2, i1:i2]
 bzm = bzm[j1:j2, i1:i2]
 mcol = mcol[j1:j2, i1:i2]
 
-# we abuse a parametric function below, so we express everything in
-# terms of a parameter k
-import random
-x = lambda k: int(k)//ny + random.gauss(0.0, 0.25)
-y = lambda k: int(k)%nx + random.gauss(0.0, 0.25)
-# x = lambda k: int(k)//ny + (random.random() - 0.5) 
-# y = lambda k: int(k)%nx + (random.random() - 0.5)
-arrow_adjust = 1.0
-def s(k):
-    jj = min(y(k),ny-1)
-    ii = min(x(k),nx-1)
-    return arrow_adjust*b[jj,ii]
-a = lambda k: theta[min(y(k),ny-1),min(x(k),nx-1)]*180/N.pi   
+# # we abuse a parametric function below, so we express everything in
+# # terms of a parameter k
+# import random
+# x = lambda k: int(k)//ny + random.gauss(0.0, 0.25)
+# y = lambda k: int(k)%nx + random.gauss(0.0, 0.25)
+# # x = lambda k: int(k)//ny + (random.random() - 0.5) 
+# # y = lambda k: int(k)%nx + (random.random() - 0.5)
+# arrow_adjust = 1.0
+# def s(k):
+#     jj = min(y(k),ny-1)
+#     ii = min(x(k),nx-1)
+#     return arrow_adjust*b[jj,ii]
+# a = lambda k: theta[min(y(k),ny-1),min(x(k),nx-1)]*180/N.pi   
+
+# 04 Dec 2010 Redo vector field as data arrays, not parametric function
+y, x = N.mgrid[0:ny, 0:nx]
+# add some jitter to the positions
+y += N.random.normal(scale=0.3, size=[ny, nx])
+x += N.random.normal(scale=0.3, size=[ny, nx])
 
 c = pyx.canvas.canvas()
 
@@ -168,24 +187,15 @@ for title, bx, by, bz, bscale, xshift, yshift in [
     b.clip(0.0, 1.0, out=b)       # make sure we don't get arrows too big
 
     theta = N.arctan2(by, bx) # angle of B with x-axis
-    arrowfunc = pyx.graph.data.paramfunction(
-        "k", 0, nx*ny-1, "x, y, size, angle = (worldwidth/nx)*x(k), (worldheight/ny)*y(k), s(k), a(k)",
-        points=nx*ny, context=locals())
-    vectorstyles = [
-        pyx.color.rgb.red,
-        pyx.color.transparency(0.5),
-        pyx.style.linewidth.thick,
-        ]
-
-    if args.arrows: 
-        arrowsize = 0.15
-    else:
-        arrowsize = 0.0                 # no arrowhead
-
-    g.plot(arrowfunc, [pyx.graph.style.arrow(arrowsize=0.15,
-                                             arrowattrs=vectorstyles,
-                                             lineattrs=vectorstyles,
-                                             )])
+    vectordata = pyx.graph.data.values(
+        x = (worldwidth/nx)*x.ravel(), y = (worldheight/ny)*y.ravel(), 
+        size = b.ravel(), angle = theta.ravel()*180.0/N.pi
+        )
+    g.plot(vectordata, [pyx.graph.style.arrow(arrowsize=arrowsize,
+                                              arrowattrs=arrowattrs,
+                                              lineattrs=vectorstyles,
+                                              linelength=linelength
+                                              )])
 
     # Add contours of molecular column
     g.pyxplotcontour(mcol, xx, yy,
@@ -247,5 +257,5 @@ c.insert(g)
 # Write out to PDF file
 execroot = os.path.split(sys.argv[0])[-1].split('.')[0]
 
-c.writePDFfile("%s-%s-%i-rot%+3.3i%+3.3i-x%3.3i-y%3.3i" 
-               % (execroot, args.runid, args.itime, args.theta, args.phi, args.xcenter, args.ycenter))
+c.writePDFfile("%s-%s-%i-rot%+3.3i%+3.3i-x%3.3i-y%3.3i%s" 
+               % (execroot, args.runid, args.itime, args.theta, args.phi, args.xcenter, args.ycenter, arrows_id))

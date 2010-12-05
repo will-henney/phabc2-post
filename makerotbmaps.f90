@@ -12,12 +12,16 @@ program makerotbmaps
   real :: theta, phi
   real, dimension(:,:,:), allocatable :: dd, xxi, bbx, bby, bbz, AAV, mm ! rotated datacubes
   real, dimension(:,:,:), allocatable :: bbxx, bbyy, bbzz ! rotated vectors
+  real, dimension(:,:,:), allocatable :: bq, bu, alpha, bbxy           ! vectors in q-u space
+  real, dimension(:,:), allocatable :: bmapiq, bmapnq, bmapmq
+  real, dimension(:,:), allocatable :: bmapiu, bmapnu, bmapmu, qu, al
   character(len=128) :: prefix
   integer :: itime
   character(len=4) :: ctime
   character(len=13) :: rotid
   real ::  zsize, dzz
-  character(len=1), dimension(5) :: axid = (/ 'x', 'y', 'z', 'U', 'V' /)
+  integer, parameter :: naxes = 5
+  character(len=1), dimension(naxes) :: axid = (/ 'x', 'y', 'z', 'U', 'V' /)
 
   ! options are nearest/linear
   interpolation = interpolation_linear
@@ -91,42 +95,100 @@ program makerotbmaps
 
 
   ! integration is along the new zz-axis
-  allocate(bmapi(3, nxx, nyy), bmapn(3, nxx, nyy), bmapm(3, nxx, nyy))
+  allocate(bmapi(naxes, nxx, nyy), bmapn(naxes, nxx, nyy), bmapm(naxes, nxx, nyy))
   allocate(coli(nxx, nyy), coln(nxx, nyy), colm(nxx, nyy))
 
   ! B field weighted by ionized column
   bmapi(1, :, :) = sum(dd*xxi*bbxx, dim=3)
   bmapi(2, :, :) = sum(dd*xxi*bbyy, dim=3)
   bmapi(3, :, :) = sum(dd*xxi*bbzz, dim=3)
-  bmapi(4, :, :) = sum(dd*xxi*abs(bbxx), dim=3)
-  bmapi(5, :, :) = sum(dd*xxi*abs(bbyy), dim=3)
 
   ! B field weighted by neutral column
   bmapn(1, :, :) = sum(dd*(1.-xxi)*(1.-mm)*bbxx, dim=3)
   bmapn(2, :, :) = sum(dd*(1.-xxi)*(1.-mm)*bbyy, dim=3)
   bmapn(3, :, :) = sum(dd*(1.-xxi)*(1.-mm)*bbzz, dim=3)
-  bmapn(4, :, :) = sum(dd*(1.-xxi)*(1.-mm)*abs(bbxx), dim=3)
-  bmapn(5, :, :) = sum(dd*(1.-xxi)*(1.-mm)*abs(bbyy), dim=3)
 
   ! B field weighted by molecular column
   bmapm(1, :, :) = sum(dd*(1.-xxi)*mm*bbxx, dim=3)
   bmapm(2, :, :) = sum(dd*(1.-xxi)*mm*bbyy, dim=3)
   bmapm(3, :, :) = sum(dd*(1.-xxi)*mm*bbzz, dim=3)
-  bmapm(4, :, :) = sum(dd*(1.-xxi)*mm*abs(bbxx), dim=3)
-  bmapm(5, :, :) = sum(dd*(1.-xxi)*mm*abs(bbyy), dim=3)
 
   ! ... and the columns themselves
   coli(:, :) = sum(dd*xxi, dim=3)
   coln(:, :) = sum(dd*(1.-xxi)*(1.-mm), dim=3)
   colm(:, :) = sum(dd*(1.-xxi)*mm, dim=3)
 
-  do i = 1, 5
+  ! Now transform B_x, B_y to B_q, B_u
+  ! B_q = B_x - B_y
+  ! B_q^2 + B_u^2 = B_x^2 + B_y^2 = B_x^2 + B_y^2 - 2 B_x B_y + B_u^2
+  ! B_u = +/- sqrt(2 B_x B_y) = sgn(By) sqrt(2 B_x B_y)
+  allocate(bq(nxx,nyy,nzz), bu(nxx,nyy,nzz), bbxy(nxx,nyy,nzz), alpha(nxx,nyy,nzz))
+  alpha = atan2(bbyy, bbxx)
+  bbxy = sqrt(bbxx**2 + bbyy**2)
+  bq = bbxy*cos(2.0*alpha)
+  bu = bbxy*sin(2.0*alpha)
+  deallocate(bbxy, alpha)
+
+!!$  bu = sign(sqrt(2.0*bbxx*bbyy), bbyy)
+  
+  print '(a)', 'whole-cube statistics in microG [min/mean/max]:'
+  print '(a,"[",f0.3,"/",f0.3,"/",f0.3,"]")', 'bbxx: ', &
+       & minval(1.e6*bbxx), sum(1.e6*bbxx)/product(shape(bbxx)), maxval(1.e6*bbxx) 
+  print '(a,"[",f0.3,"/",f0.3,"/",f0.3,"]")', 'bbyy: ', &
+       & minval(1.e6*bbyy), sum(1.e6*bbyy)/product(shape(bbyy)), maxval(1.e6*bbyy) 
+  print '(a,"[",f0.3,"/",f0.3,"/",f0.3,"]")', 'bbzz: ', &
+       & minval(1.e6*bbzz), sum(1.e6*bbzz)/product(shape(bbzz)), maxval(1.e6*bbzz) 
+  print '(a,"[",f0.3,"/",f0.3,"/",f0.3,"]")', 'bq(real): ', &
+       & minval(1.e6*real(bq)), sum(1.e6*real(bq))/product(shape(bq)), maxval(1.e6*real(bq)) 
+!!$  print '(a,"[",f0.3,"/",f0.3,"/",f0.3,"]")', 'bq(imag): ', &
+!!$       & minval(1.e6*imag(bq)), sum(1.e6*imag(bq))/product(shape(bq)), maxval(1.e6*imag(bq)) 
+  print '(a,"[",f0.3,"/",f0.3,"/",f0.3,"]")', 'bu(real): ', &
+       & minval(1.e6*real(bu)), sum(1.e6*real(bu))/product(shape(bu)), maxval(1.e6*real(bu)) 
+!!$  print '(a,"[",f0.3,"/",f0.3,"/",f0.3,"]")', 'bu(imag): ', &
+!!$       & minval(1.e6*imag(bu)), sum(1.e6*imag(bu))/product(shape(bu)), maxval(1.e6*imag(bu)) 
+
+
+  ! do the integration of the q, u components
+  allocate(bmapiq(nxx, nyy), bmapnq(nxx, nyy), bmapmq(nxx, nyy))
+  allocate(bmapiu(nxx, nyy), bmapnu(nxx, nyy), bmapmu(nxx, nyy))
+  bmapiq = sum(dd*xxi*bq, dim=3)
+  print *, 'q', 'i', maxval(real(bmapiq)), minval(real(bmapiq))
+  bmapiu = sum(dd*xxi*bu, dim=3)
+  print *, 'u', 'i', maxval(real(bmapiu)), minval(real(bmapiu))
+  bmapnq = sum(dd*(1.-xxi)*(1.-mm)*bq, dim=3)
+  print *, 'q', 'n', maxval(bmapnq), minval(bmapnq) 
+  bmapnu = sum(dd*(1.-xxi)*(1.-mm)*bu, dim=3)
+  print *, 'u', 'n', maxval(bmapnu), minval(bmapnu) 
+  bmapmq = sum(dd*(1.-xxi)*mm*bq, dim=3)
+  print *, 'q', 'm', maxval(bmapmq), minval(bmapmq) 
+  bmapmu = sum(dd*(1.-xxi)*mm*bu, dim=3)
+  print *, 'u', 'm', maxval(bmapmu), minval(bmapmu) 
+  
+  ! now switch back to x, y
+  allocate(qu(nxx, nyy), al(nxx, nyy))
+  qu = sqrt(bmapiq**2 + bmapiu**2)
+  al = 0.5*atan2(bmapiu, bmapiq)
+  bmapi(4,:,:) = qu*cos(al)
+  bmapi(5,:,:) = qu*sin(al)
+  qu = sqrt(bmapnq**2 + bmapnu**2)
+  al = 0.5*atan2(bmapnu, bmapnq)
+  bmapn(4,:,:) = qu*cos(al)
+  bmapn(5,:,:) = qu*sin(al)
+  qu = sqrt(bmapmq**2 + bmapmu**2)
+  al = 0.5*atan2(bmapmu, bmapmq)
+  bmapm(4,:,:) = qu*cos(al)
+  bmapm(5,:,:) = qu*sin(al)
+  
+  do i = 1, naxes
      call fitswrite(bmapi(i, :, :), &
           & trim(prefix)//'-bmap-i-'//axid(i)//rotid//ctime//'.fits')
      call fitswrite(bmapn(i, :, :), &
           & trim(prefix)//'-bmap-n-'//axid(i)//rotid//ctime//'.fits')
      call fitswrite(bmapm(i, :, :), &
           & trim(prefix)//'-bmap-m-'//axid(i)//rotid//ctime//'.fits')
+     print *, axid(i), 'i', maxval(bmapi(i, :, :)), minval(bmapi(i, :, :))
+     print *, axid(i), 'n', maxval(bmapn(i, :, :)), minval(bmapn(i, :, :))
+     print *, axid(i), 'm', maxval(bmapm(i, :, :)), minval(bmapm(i, :, :))
   end do
   call fitswrite(coli, &
        & trim(prefix)//'-colmap-i'//rotid//ctime//'.fits')

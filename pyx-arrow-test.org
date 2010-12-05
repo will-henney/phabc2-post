@@ -1,0 +1,227 @@
+
+* Test of a headless arrow style in PyX
+
+** The standard version as a baseline
+
+#+srcname: headed-arrow
+#+begin_src python :file headed-arrow.pdf
+  import pyx
+  import numpy as np
+  
+  # initialise data
+  n = 12
+  x = np.arange(n, dtype=np.float)
+  y = np.arange(n, dtype=np.float)
+  size = np.ones(n, dtype=np.float)
+  angle = np.linspace(0.0, 360.0, n)
+  
+  # initialise PyX
+  figsize = 3*pyx.unit.v_cm
+  graph = pyx.graph.graphxy(width=figsize, height=figsize)
+  style = pyx.graph.style.arrow()
+  plotfile = "headed-arrow"
+  
+  # plot data
+  data = pyx.graph.data.values(x=x, y=y, size=size, angle=angle)
+  graph.plot(data, [style])
+  
+  # save PDF file and return it to org-babel
+  graph.writePDFfile(plotfile)
+  return plotfile + ".pdf"
+#+end_src
+
+#+results: headed-arrow
+[[file:headed-arrow.pdf]]
+
+** And now, the headless arrow version
+
+The idea is to remove the arrow-head, so as to represent an "unsigned" vector field, such as polarization angles. 
+#+srcname: headless-arrow
+#+begin_src python :file headless-arrow.pdf
+  import pyx
+  import numpy as np
+  
+  # initialise data
+  n = 12
+  x = np.arange(n, dtype=np.float)
+  y = np.arange(n, dtype=np.float)
+  size = np.ones(n, dtype=np.float)
+  angle = np.linspace(0.0, 360.0, n)
+  
+  # initialise PyX
+  figsize = 3*pyx.unit.v_cm
+  graph = pyx.graph.graphxy(width=figsize, height=figsize)
+  style = pyx.graph.style.arrow(
+      arrowattrs=[pyx.color.transparency(1.0)],
+      lineattrs=[pyx.color.rgb.red]
+      )
+  plotfile = "headless-arrow"
+  
+  # plot data
+  data = pyx.graph.data.values(x=x, y=y, size=size, angle=angle)
+  graph.plot(data, [style])
+  
+  # save PDF file and return it to org-babel
+  graph.writePDFfile(plotfile)
+  
+  return plotfile + ".pdf"
+#+end_src
+
+#+results: headless-arrow
+[[file:headless-arrow.pdf]]
+
+** Final solution
+
+*** arrowsize=None
+#+srcname: none-size
+#+begin_src python :noweb yes :file none-size.pdf
+  <<pyx-setup>>
+  style = pyx.graph.style.arrow(arrowsize=None)
+  plotfile = "none-size"
+  <<pyx-plotsave>>
+#+end_src
+
+#+results: none-size
+[[file:none-size.pdf]]
+
+
+** Versions that do not work
+
+#+srcname: pyx-setup
+#+begin_src python
+  import pyx
+  import numpy as np
+  
+  # initialise data
+  n = 12
+  x = np.arange(n, dtype=np.float)
+  y = np.arange(n, dtype=np.float)
+  size = np.ones(n, dtype=np.float)
+  angle = np.linspace(0.0, 360.0, n)
+  
+  # initialise PyX
+  figsize = 3*pyx.unit.v_cm
+  graph = pyx.graph.graphxy(width=figsize, height=figsize)
+  
+  # load data into PyX
+  data = pyx.graph.data.values(x=x, y=y, size=size, angle=angle)
+  
+#+end_src
+
+#+srcname: pyx-plotsave
+#+begin_src python
+  graph.plot(data, [style])
+  
+  # save PDF file and return it to org-babel
+  graph.writePDFfile(plotfile)
+#+end_src
+
+*** arrowattrs=[pyx.attr.clear]
+#+srcname: attr-clear
+#+begin_src python :session :results output :noweb yes :exports both
+  <<pyx-setup>>
+  style = pyx.graph.style.arrow(arrowattrs=[pyx.attr.clear])
+  plotfile = "attr-clear"
+  <<pyx-plotsave>>
+#+end_src
+
+#+results: attr-clear
+#+begin_example
+
+<pyx.graph.graph.plotitem instance at 0x3f93f30>
+Traceback (most recent call last):
+  File "<stdin>", line 2, in <module>
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/canvas.py", line 289, in wrappedindocument
+    return method(d, file)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/document.py", line 171, in writePDFfile
+    pdfwriter.PDFwriter(self, _outputstream(file, "pdf"), **kwargs)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/pdfwriter.py", line 316, in __init__
+    catalog = PDFcatalog(document, self, registry)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/pdfwriter.py", line 142, in __init__
+    self.PDFpages = PDFpages(document, writer, registry)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/pdfwriter.py", line 201, in __init__
+    page = PDFpage(page, pageno, self, writer, registry)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/pdfwriter.py", line 235, in __init__
+    self.PDFcontent = PDFcontent(page, writer, self.pageregistry)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/pdfwriter.py", line 267, in __init__
+    page.processPDF(contentfile, writer, acontext, registry, self.bbox)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/document.py", line 134, in processPDF
+    self._process("processPDF", *args)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/document.py", line 128, in _process
+    getattr(cc, processMethod)(contentfile, writer, context, registry, bbox)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/graph/graph.py", line 168, in processPDF
+    canvas.canvas.processPDF(self, file, writer, context, registry, bbox)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/canvas.py", line 174, in processPDF
+    item.processPDF(file, writer, context, registry, nbbox)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/canvas.py", line 174, in processPDF
+    item.processPDF(file, writer, context, registry, nbbox)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/deco.py", line 308, in processPDF
+    self.ornaments.processPDF(file, writer, context, registry, bbox)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/canvas.py", line 174, in processPDF
+    item.processPDF(file, writer, context, registry, nbbox)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/deco.py", line 240, in processPDF
+    raise RuntimeError("Path neither to be stroked nor filled nor decorated in another way")
+RuntimeError: Path neither to be stroked nor filled nor decorated in another way
+#+end_example
+
+*** arrowsize=0
+#+srcname: zero-size
+#+begin_src python :session :results output :noweb yes :exports both
+  <<pyx-setup>>
+  style = pyx.graph.style.arrow(arrowsize=0)
+  plotfile = "zero-size"
+  <<pyx-plotsave>>
+#+end_src
+
+#+results: zero-size
+#+begin_example
+
+<pyx.graph.graph.plotitem instance at 0x41dd170>
+Traceback (most recent call last):
+  File "<stdin>", line 2, in <module>
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/canvas.py", line 289, in wrappedindocument
+    return method(d, file)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/document.py", line 171, in writePDFfile
+    pdfwriter.PDFwriter(self, _outputstream(file, "pdf"), **kwargs)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/pdfwriter.py", line 316, in __init__
+    catalog = PDFcatalog(document, self, registry)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/pdfwriter.py", line 142, in __init__
+    self.PDFpages = PDFpages(document, writer, registry)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/pdfwriter.py", line 201, in __init__
+    page = PDFpage(page, pageno, self, writer, registry)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/pdfwriter.py", line 235, in __init__
+    self.PDFcontent = PDFcontent(page, writer, self.pageregistry)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/pdfwriter.py", line 267, in __init__
+    page.processPDF(contentfile, writer, acontext, registry, self.bbox)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/document.py", line 134, in processPDF
+    self._process("processPDF", *args)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/document.py", line 84, in _process
+    bbox.set(self.canvas.bbox())
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/graph/graph.py", line 151, in bbox
+    self.finish()
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/graph/graph.py", line 281, in finish
+    self.doplot()
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/graph/graph.py", line 262, in doplot
+    self.doplotitem(plotitem)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/graph/graph.py", line 258, in doplotitem
+    plotitem.draw(self)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/graph/graph.py", line 110, in draw
+    style.drawpoint(privatedata, self.sharedata, graph, point)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/graph/style.py", line 921, in drawpoint
+    [deco.earrow(privatedata.arrowattrs, size=self.arrowsize*size)])
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/canvas.py", line 242, in stroke
+    self.draw(path, [deco.stroked]+list(attrs))
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/canvas.py", line 228, in draw
+    adeco.decorate(dp, self.texrunner)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/deco.py", line 477, in decorate
+    arrowhead = _arrowhead(anormpath, arclenfrombegin, direction, self.size, self.angle, arrowheadconstrictionlen)
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/deco.py", line 423, in _arrowhead
+    arrow[-1].close()
+  File "/Library/Frameworks/Python.framework/Versions/6.2/lib/python2.6/site-packages/pyx/normpath.py", line 957, in close
+    raise NormpathException("Normsubpath too short, cannot be closed")
+pyx.normpath.NormpathException: Normsubpath too short, cannot be closed
+#+end_example
+
+
+
+
