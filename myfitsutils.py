@@ -73,16 +73,20 @@ class FitsImage(MyImage, FitsData):
 		 icut=None, cutaxis=1, takelog=0):
         FitsData.__init__(self, fitsfile, bb, icut, cutaxis)
         MyImage.__init__(self, 'L', self.size)
-	# 09 Sep 2005: How on earth did this ever work before? It is necessary
-	# to clip fitsdata to [fmin,fmax] before applying gamma correction, or
-	# else we get sqrt of negative numbers....
+        # 06 Dec 2010: add new attributes: min, max to allow outside inspection
+        # 05 Dec 2010: If fmin or fmax is None, then the respective limit is found from the data
+        self.min = fmin if not fmin is None else self.fitsdata.min()
+        self.max = fmax if not fmax is None else self.fitsdata.max()
 	if takelog:
 	    self.flatnormaldata = (
 		numarray.ravel(numarray.log10(self.fitsdata)) 
-		- numarray.log10(fmin) ) / ( 
-		numarray.log10(fmax) - numarray.log10(fmin))
+		- numarray.log10(self.min) ) / ( 
+		numarray.log10(self.max) - numarray.log10(self.min))
 	else:
-	    self.flatnormaldata = (numarray.ravel(self.fitsdata)-fmin)/(fmax-fmin)
+	    self.flatnormaldata = (numarray.ravel(self.fitsdata)-self.min)/(self.max-self.min)
+	# 09 Sep 2005: How on earth did this ever work before? It is necessary
+	# to clip fitsdata to [fmin,fmax] before applying gamma correction, or
+	# else we get sqrt of negative numbers....
 	# Aha, there is a smart way to do this!
 	self.flatnormaldata = numarray.clip(self.flatnormaldata, 0.0, 1.0)
 
