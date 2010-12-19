@@ -90,7 +90,7 @@ for runid, i1, i2 in runtab:
     f = graph.data.function(
 	"y(x) = R0*(1.0 + x/t0)**(4./7.)", 
 	context=locals(),
-	title=r"$R_\mathrm{Str\ddot om}$"
+	title=r"$R_\mathrm{Spitzer}$"
     )
     g.plot(f, [graph.style.line([color.gray(0.8), style.linewidth.THIck])])
     # plot the simulation lines last since they are thinner
@@ -142,7 +142,7 @@ for runid, i1, i2 in runtab:
     f = graph.data.function(
 	"y(x) = (3./8.)*(ci/1.e5)*(1.0 + x/t0)**(-3./7.)",
 	context=locals(),
-	title=r'$\left\langle v_r\right\rangle_\mathrm{Str\ddot om}$')
+	title=r'$\left\langle v_r\right\rangle_\mathrm{Spitzer}$')
     g.plot(f, [graph.style.line([color.gray(0.8), style.linewidth.THIck])])
     # plot the simulation lines last since they are thinner
     g.plot(d, [graph.style.line()])
