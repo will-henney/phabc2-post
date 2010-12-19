@@ -59,7 +59,7 @@ cuttext_height = max([im.size[1] for im in cuttextimages])
 ##
 ## Stitch panels together
 ##
-keyimages = [Image.open("mhdcuts-Bkey-%2.2i.png" % (i)) for i in [10, 5]]
+keyimages = [Image.open("mhdcuts-Bkey-%s.png" % (i)) for i in ["val", "sat"]]
 
 for filepattern, itime, megayear in zip(filepatterns, itimes, megayears):
     print filepattern
@@ -87,7 +87,9 @@ for filepattern, itime, megayear in zip(filepatterns, itimes, megayears):
     ox = mx
     image.paste(timetextimage, (ox, oy), timetextimage)
 
-    oy = ny + my + my/2 - keyimages[0].size[1]/2
+    # oy = ny + my + my/2 - keyimages[0].size[1]/2
+    # oy = ny/4 + my - keyimages[0].size[1]/2
+    oy = my
     ox = mx + mx/2 + nx - keyimages[0].size[0]/2
     image.paste(keyimages[0], (ox, oy), keyimages[0])
     ox += nx + mx
