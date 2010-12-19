@@ -86,6 +86,8 @@ colm, coln, coli = ['%s-colmap-%s-rot%+3.3i%+3.3i-%4.4i.fits'
 
 # The actual data for the molecular column densities - used in contours
 mcol = pyfits.open(colm)["PRIMARY"].data
+ncol = pyfits.open(coln)["PRIMARY"].data
+icol = pyfits.open(coli)["PRIMARY"].data
 
 # PyX gives lots of unnecessary warnings - let's turn them off!
 warnings.simplefilter("ignore")
@@ -128,14 +130,14 @@ bm_scale *= args.bscale*args.molecular_bscale
 ## functions needed for vector plots
 ny, nx = bxi.shape
 parsec = 3.085677582e18
-if args.runid.startswith("Ostar") or args.runid.startswith("Bstar"):
-    boxsize_pc = 4.0
-elif args.runid.startswith("s") or args.runid.startswith("w"):
-    boxsize_pc = 1.0
-else:
-    raise NotImplementedError, "Unknown boxsize for this type of run"
+# if args.runid.startswith("Ostar") or args.runid.startswith("Bstar"):
+#     boxsize_pc = 4.0
+# elif args.runid.startswith("s") or args.runid.startswith("w"):
+#     boxsize_pc = 1.0
+# else:
+#     raise NotImplementedError, "Unknown boxsize for this type of run"
 
-cellsize = parsec*boxsize_pc/ny
+cellsize = parsec*args.boxsize/ny
 
 nx //= args.zoom
 ny //= args.zoom
@@ -166,6 +168,8 @@ bxm = bxm[j1:j2, i1:i2]
 bym = bym[j1:j2, i1:i2]
 bzm = bzm[j1:j2, i1:i2]
 mcol = mcol[j1:j2, i1:i2]
+ncol = ncol[j1:j2, i1:i2]
+icol = icol[j1:j2, i1:i2]
 
 # 04 Dec 2010 Redo vector field as data arrays, not parametric function
 y, x = N.mgrid[0:ny, 0:nx]
@@ -319,8 +323,14 @@ print "Written graph to [[%s.pdf]]" % (savefile)
 
 sigma_dust = 5e-22
 AV_per_tau = 1.08573620476
-microgauss = 1.e-6*N.sqrt(4.0*N.pi)
-print "Maximum column densities [ion/neut/mol] = [%.1f/%.1f/%.1f] mag V-band" % tuple(
-    [m*cellsize*sigma_dust*AV_per_tau for m in maxcoli, maxcoln, maxcolm])
-print "Maximum integrated B [ion/neut/mol] = [%.1f/%.1f/%.1f] micro G . mag V-band" % tuple(
-    [m*cellsize*sigma_dust*AV_per_tau/microgauss for m in bi_scale, bn_scale, bm_scale])
+microgauss = 1.e-6/N.sqrt(4.0*N.pi)
+# print "Maximum column densities [ion/neut/mol] = [%.1e, %.1e, %.1e] mag V-band" % tuple(
+#     [m*cellsize*sigma_dust*AV_per_tau for m in maxcoli, maxcoln, maxcolm])
+print "Maximum column densities [ion/neut/mol] = [%.1e, %.1e, %.1e] /cm^2" % tuple(
+    [m*cellsize for m in maxcoli, maxcoln, maxcolm])
+print "Maximum integrated B [ion/neut/mol] = [%.1e, %.1e, %.1e] micro G /cm^2" % tuple(
+    # [m*cellsize*sigma_dust*AV_per_tau/microgauss for m in bi_scale, bn_scale, bm_scale]
+    [m*cellsize/microgauss for m in bi_scale, bn_scale, bm_scale])
+print "Mean B fields [ion/neut/mol] =  [%.1e, %.1e, %.1e] micro G" % tuple(
+    [N.mean(N.sqrt(bx**2 + by**2 + bz**2))/N.mean(colden)/microgauss 
+     for colden, bx, by, bz in [icol, bxi, byi, bzi], [ncol, bxn, byn, bzn], [mcol, bxm, bym, bzm]])
