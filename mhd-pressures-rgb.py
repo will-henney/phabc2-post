@@ -240,7 +240,8 @@ for a, atext in [(pp, 'P_gas'), (pb, 'P_mag'), (pt, 'P_ram'), (bb, 'B'), (dn, 'n
 
 
 pyx.text.set(mode="latex")
-pyx.text.preamble("""\usepackage{mathptmx}""")
+# pyx.text.preamble("""\usepackage{mathptmx}""")
+pyx.text.preamble("""\usepackage[varg]{txfonts}""")
 Graph.figwidth = 6
 Graph.figheight = 6
 
