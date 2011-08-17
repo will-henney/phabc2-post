@@ -26,6 +26,8 @@ parser.add_argument("--bscale", type=float, default=1.0,
                     help="Extra scale factor for the B-field (<1 emphasizes faint structures)")
 parser.add_argument("--molecular-bscale", type=float, default=1.0, 
                     help="Extra extra scale factor for the molecular B-field (<1 emphasizes faint structures)")
+parser.add_argument("--los-bscale", type=float, default=1.0, 
+                    help="Extra extra scale factor for the LOS B-field")
 parser.add_argument("--theta", type=int, default=0, 
                     help='Viewing angle theta in degrees')
 parser.add_argument("--phi", type=int, default=0, 
@@ -229,7 +231,8 @@ for title, bx, by, bz, bscale, xshift, yshift in [
         )
 
     # Grayscale of z component
-    g.pyxplotarray(bz[::-1,:], colmap=mycolmap, minvalue=-bscale, maxvalue=bscale,
+    g.pyxplotarray(bz[::-1,:], colmap=mycolmap, 
+                   minvalue=-bscale*args.los_bscale, maxvalue=bscale*args.los_bscale,
                    xpos=0.0, ypos=0.0, width=worldwidth, height=worldheight, graphcoords=True)
 
     # Plot vectors of plane-of-sky field
@@ -319,7 +322,7 @@ savefile = "%s-%s-%s-%i-rot%+3.3i%+3.3i-x%3.3i-y%3.3i%s" \
 
 c.writePDFfile(savefile)
 
-print "Written graph to [[%s.pdf]]" % (savefile)
+print "Written graph to %s.pdf" % (savefile)
 
 sigma_dust = 5e-22
 AV_per_tau = 1.08573620476
