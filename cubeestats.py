@@ -37,11 +37,15 @@ GAMMA = 5./3.
 def load_fits(varid, itime):
     return pyfits.open('%s-%s%4.4i.fits' % (args.runid, varid, itime))['PRIMARY'].data
 
+def energy_fmt(energies):
+    "Format for printing the list of per-phase energies plus their sum"
+    assert len(energies) == 3
+    return "%9.2e %9.2e %9.2e" % tuple(energies) + " | %9.2e" % (sum(energies))
 
 is_first_time = True 
 for itime in range(args.i1, args.i2+1, args.istep):
     vx, vy, vz, xn, AV, dd = [load_fits(id, itime) for id in ["vx", "vy", "vz", "xn", "AV", "dd"]]
-    bx, by, bz, pp, en = [load_fits(id, itime) for id in ["bx", "by", "bz", "pp", "en"]]
+    bx, by, bz, pp = [load_fits(id, itime) for id in ["bx", "by", "bz", "pp"]]
     dn = dd / (MP*MU)      # number density
 
     # Do things that need to be done only once, but which depend on the cube size
@@ -73,8 +77,8 @@ for itime in range(args.i1, args.i2+1, args.istep):
     for w in weights: # each energy (ke, the, ...) has 3 values (1 for each phase)
         # kinetic energy
         ke.append(numpy.sum(w * 0.5*dd*(vx**2 + vy**2 + vz**2)) * dVol)
-        # "radial" kinetic energy
-        rke.append(numpy.sum(w * 0.5*dd*vr**2) * dVol)
+        # "outward radial" kinetic energy
+        rke.append(numpy.sum(w * 0.5*dd*vr*numpy.abs(vr)) * dVol)
         # thermal energy
         the.append(numpy.sum(w * pp / (GAMMA - 1.0)) * dVol)
         # magnetic energy
@@ -82,16 +86,19 @@ for itime in range(args.i1, args.i2+1, args.istep):
         # mass in each phase
         mass.append(numpy.sum(w * dd) * dVol)
         # total energy
-        ee.append(numpy.sum(w * en) * dVol)
+        ee.append(ke[-1] + the[-1] + me[-1])
 
 
-    print "="*50
+    print "="*60
     print "Time: ", itime
-    print "Kinetic energies : %.2e %.2e %.2e" % tuple(ke)
-    print "Thermal energies : %.2e %.2e %.2e" % tuple(the)
-    print "Magnetic energies: %.2e %.2e %.2e" % tuple(me)
-    print "."*50
-    print "Total energies   : %.2e %.2e %.2e" % tuple(ee)
-    print "Mass             : %.2e %.2e %.2e" % tuple(mass)
+    print "Kinetic energies :", energy_fmt(ke)
+    print "Radial KE        :", energy_fmt(rke)
+    print "Thermal energies :", energy_fmt(the)
+    print "Magnetic energies:", energy_fmt(me)
+    print "."*57
+    print "Total energies   :", energy_fmt(ee)
+    print "Mass             :", energy_fmt(mass)
 
-print "="*50
+print "="*60
+print "                 :", "%9s %9s %9s | %9s" % ("molec", "neut", "ion", "TOTAL")
+print "="*60
