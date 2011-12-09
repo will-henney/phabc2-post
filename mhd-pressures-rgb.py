@@ -201,6 +201,7 @@ except IndexError, ValueError:
     exit
 
 uniform = False
+gamma = 1.0
 if 'krum' in runid:
     # krum models write out every 10,000 yrs
     age_Myr = float(itime)/100.0
@@ -209,6 +210,11 @@ if 'krum' in runid:
 elif 'Ostar' in runid or 'Bstar' in runid: 
     # others write out every 1000 yrs
     age_Myr = float(itime)/1000.0
+elif runid.startswith('s') or runid.startswith('w'):
+    # assume this is a globule run
+    age_Myr = float(itime)/1000.0
+    uniform = True
+    gamma *= 2.0
 else:
     print 'Unrecognised type of simulation - cannot guess age'
     raise ValueError 
@@ -248,9 +254,9 @@ Graph.figheight = 6
 offsetB = 6.281724544	# log(B) for n = 1 pcc, va = 1 km/s
 kb = 1.3806503e-16
 
-pmin, pmax = 1.0, 8.0
+pmin, pmax = 1.0, 9.5
 nmin, nmax = 0.0, 6.2
-bmin, bmax = -7, -3.5
+bmin, bmax = -7, -3.1
 tmin, tmax = 0.2, 4.7
 npix = 50
 
@@ -283,7 +289,7 @@ if varstring.startswith("pgas-pmag"):
     p2var.setminmaxn(min=pmin, max=pmax, n=npix)
     p2var.settitle(r'$\log P_\mathrm{mag}/k$', 'log P_mag / k')
 
-    g = Graph(p1var, p2var, weights=weights, gamma=2.0, statslevel=1)
+    g = Graph(p1var, p2var, weights=weights, gamma=2.0*gamma, statslevel=1)
 
 elif varstring.startswith("pgas-pram"):
     p1var = PlotVariable(N.log10(pp/kb))
@@ -294,7 +300,7 @@ elif varstring.startswith("pgas-pram"):
     p2var.setminmaxn(min=pmin, max=pmax, n=npix)
     p2var.settitle(r'$\log P_\mathrm{ram}/k$', 'log P_ram / k')
 
-    g = Graph(p1var, p2var, weights=weights, gamma=1.0, statslevel=0)
+    g = Graph(p1var, p2var, weights=weights, gamma=1.0*gamma, statslevel=0)
 
 elif varstring.startswith("pram-pmag"):
     p1var = PlotVariable(N.log10(pt/kb))
@@ -305,7 +311,7 @@ elif varstring.startswith("pram-pmag"):
     p2var.setminmaxn(min=pmin, max=pmax, n=npix)
     p2var.settitle(r'$\log P_\mathrm{mag}/k$', 'log P_mag / k')
 
-    g = Graph(p1var, p2var, weights=weights, gamma=3.0, statslevel=1)
+    g = Graph(p1var, p2var, weights=weights, gamma=3.0*gamma, statslevel=1)
 
 elif varstring.startswith("n-B"):
     dnvar = PlotVariable(N.log10(dn))
@@ -321,7 +327,7 @@ elif varstring.startswith("n-B"):
 	bbvar.setmask(abs(bb - bb[0,0,0]) > 0.01*bb[0,0,0])
 	dnvar.setmask(abs(dn - dn[0,0,0]) > 0.01*dn[0,0,0])
 
-    g = Graph(dnvar, bbvar, weights=weights, gamma=3.0, statslevel=1)
+    g = Graph(dnvar, bbvar, weights=weights, gamma=3.0*gamma, statslevel=1)
 
 
 # V_a = B/sqrt(4 pi rho)
@@ -337,7 +343,7 @@ elif varstring.startswith("n-T"):
     tevar.setminmaxn(min=tmin, max=tmax, n=npix)
     tevar.settitle(r'$\log T$', 'log T')
 
-    g = Graph(dnvar, tevar, weights=weights, gamma=2.0, statslevel=1)
+    g = Graph(dnvar, tevar, weights=weights, gamma=2.0*gamma, statslevel=1)
 
 
 else:
