@@ -306,7 +306,7 @@ elif varstring.startswith("pgas-pram"):
     p2var.setminmaxn(min=pmin, max=pmax, n=npix)
     p2var.settitle(r'$\log P_\mathrm{ram}/k$', 'log P_ram / k')
 
-    g = Graph(p1var, p2var, weights=weights, gamma=1.0*gamma, statslevel=0)
+    g = Graph(p1var, p2var, weights=weights, gamma=2.0*gamma, statslevel=0)
 
 elif varstring.startswith("pram-pmag"):
     p1var = PlotVariable(N.log10(pt/kb))
