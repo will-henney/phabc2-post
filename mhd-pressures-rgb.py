@@ -237,8 +237,14 @@ except IOError:
     te = (mp * mu / dd) * pp / (2.-xn) / boltzmann_k
 
 
+# find mean velocities
+vxm = N.sum(dd*vx)/N.sum(dd)
+vym = N.sum(dd*vy)/N.sum(dd)
+vzm = N.sum(dd*vz)/N.sum(dd)
+
 pb = 0.5*(bx**2 + by**2 + bz**2)
-pt = 0.5*dd*(vx**2 + vy**2 + vz**2)
+# For turbulent ram pressure, first subtract bulk mean velocity
+pt = 0.5*dd*((vx-vxm)**2 + (vy-vym)**2 + (vz-vzm)**2)
 bb = N.sqrt(4.0*N.pi*(bx**2 + by**2 + bz**2))
 dn = dd / (1.3*1.67262158e-24)
 for a, atext in [(pp, 'P_gas'), (pb, 'P_mag'), (pt, 'P_ram'), (bb, 'B'), (dn, 'n_gas')] :
